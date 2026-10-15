@@ -11,11 +11,11 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  # Override linker for cross-compilation on Ubuntu x86_64 runner
+  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+  CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
 
 jobs:
-  # ---------------------------------------------------------------------
-  # Build static musl binaries for all supported architectures
-  # ---------------------------------------------------------------------
   build:
     name: Build ${{ matrix.target }}
     runs-on: ubuntu-latest
@@ -29,27 +29,30 @@ jobs:
             arch: x86_64
     steps:
       - uses: actions/checkout@v4
-      - name: Install toolchain
-        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system tools (musl + gcc-aarch64)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu
+
+      - name: Install Rust toolchain with musl targets
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.99.0"
           targets: ${{ matrix.target }}
-      - name: Install musl-tools
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Force-install musl target (belt and suspenders)
+        run: rustup target add ${{ matrix.target }} --toolchain 1.99.0
+
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
+
       - name: Verify static linking
         run: |
           BIN="target/${{ matrix.target }}/release/pulse"
           file "$BIN"
           file "$BIN" | grep -q "statically linked"
-      - name: Compute SHA-256
-        id: hash
-        run: |
-          BIN="target/${{ matrix.target }}/release/pulse"
-          SHA=$(sha256sum "$BIN" | awk '{print $1}')
-          SIZE=$(stat -c%s "$BIN")
-          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
-          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+
       - name: Rename binary
         run: |
           TAG="${{ github.ref_name }}"
@@ -57,6 +60,7 @@ jobs:
           DST="pulse-${TAG}-${{ matrix.arch }}-linux-static"
           cp "$SRC" "$DST"
           echo "ARTIFACT=$DST" >> "$GITHUB_ENV"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -64,26 +68,26 @@ jobs:
           path: ${{ env.ARTIFACT }}
           if-no-files-found: error
 
-  # ---------------------------------------------------------------------
-  # Create GitHub release with all artifacts
-  # ---------------------------------------------------------------------
   release:
     name: Publish release
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
+
       - name: Generate SHA256SUMS
         run: |
           cd artifacts
           sha256sum pulse-* > SHA256SUMS
           cat SHA256SUMS
-      - name: Generate SBOM (Cargo.lock snapshot)
+
+      - name: Generate SBOM
         run: |
           cp Cargo.lock artifacts/Cargo.lock
           cat > artifacts/SBOM.txt << 'SBOMEOF'
@@ -94,14 +98,14 @@ jobs:
           No runtime dependencies are required.
 
           The complete dependency manifest is captured in Cargo.lock,
-          which is included alongside this file. Every dependency is
-          pinned to an exact version at build time.
+          which is included alongside this file.
 
           Binary: pulse-<tag>-<arch>-linux-static
           Linking: static (musl)
           Build:   cargo build --release --target=<arch>-unknown-linux-musl
           Toolchain: Rust 1.99.0
           SBOMEOF
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
