@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ---------------------------------------------------------------------
+  # Build static musl binaries for all supported architectures
+  # ---------------------------------------------------------------------
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-unknown-linux-musl
+            arch: aarch64
+          - target: x86_64-unknown-linux-musl
+            arch: x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Install musl-tools
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+      - name: Verify static linking
+        run: |
+          BIN="target/${{ matrix.target }}/release/pulse"
+          file "$BIN"
+          file "$BIN" | grep -q "statically linked"
+      - name: Compute SHA-256
+        id: hash
+        run: |
+          BIN="target/${{ matrix.target }}/release/pulse"
+          SHA=$(sha256sum "$BIN" | awk '{print $1}')
+          SIZE=$(stat -c%s "$BIN")
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+      - name: Rename binary
+        run: |
+          TAG="${{ github.ref_name }}"
+          SRC="target/${{ matrix.target }}/release/pulse"
+          DST="pulse-${TAG}-${{ matrix.arch }}-linux-static"
+          cp "$SRC" "$DST"
+          echo "ARTIFACT=$DST" >> "$GITHUB_ENV"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pulse-${{ matrix.arch }}
+          path: ${{ env.ARTIFACT }}
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------
+  # Create GitHub release with all artifacts
+  # ---------------------------------------------------------------------
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Generate SHA256SUMS
+        run: |
+          cd artifacts
+          sha256sum pulse-* > SHA256SUMS
+          cat SHA256SUMS
+      - name: Generate SBOM (Cargo.lock snapshot)
+        run: |
+          cp Cargo.lock artifacts/Cargo.lock
+          cat > artifacts/SBOM.txt << 'SBOMEOF'
+          Pulse — Software Bill of Materials (SBOM)
+          ==========================================
+
+          This release ships a statically linked binary built with musl.
+          No runtime dependencies are required.
+
+          The complete dependency manifest is captured in Cargo.lock,
+          which is included alongside this file. Every dependency is
+          pinned to an exact version at build time.
+
+          Binary: pulse-<tag>-<arch>-linux-static
+          Linking: static (musl)
+          Build:   cargo build --release --target=<arch>-unknown-linux-musl
+          Toolchain: Rust 1.99.0
+          SBOMEOF
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/pulse-*
+            artifacts/SHA256SUMS
+            artifacts/SBOM.txt
+            artifacts/Cargo.lock
