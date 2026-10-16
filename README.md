@@ -361,7 +361,7 @@ design and threat model.
 | rkhunter | 200 KB | No | perl | rootkits only |
 | osquery | 40 MB | No | daemon | SQL queries |
 | Falco | 50+ MB | No | eBPF | runtime security |
-| **Pulse** | **0.94 MB** | **Yes** | **none** | **all of the above** |
+| **Pulse** | **0.96 MB** | **Yes** | **none** | **all of the above** |
 
 - Zero runtime dependencies — no Python, no Perl, no Bash runtime
 - Static binary — runs on any Linux/Android without installing libraries
@@ -404,8 +404,8 @@ Full details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 Two independent builds of the same tag produce byte-identical output.
 
     file:   ELF 64-bit LSB executable, ARM aarch64, statically linked, stripped
-    size:   ~1.05 MB
-    sha256: bd88bf6c224edd717d3e7cf58a932a5f47b88463c2fbfa642b64b19aaf46f209
+    size:   ~0.96 MB
+    sha256: 49d85aa775dad53780a359e803335bd0afcb5398edac2b0585776c34714c06cd
 
 Verify with:
 
