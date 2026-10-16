@@ -89,16 +89,15 @@ impl VulnerabilityReport {
 
         if self.findings.is_empty() {
             s.push_str("No known vulnerabilities detected.\n");
-            return s;
-        }
-
-        for v in &self.findings {
-            s.push_str(&format!(
-                "[{}] {}\n     evidence: {}\n",
-                v.severity.to_uppercase(),
-                v.message,
-                v.evidence
-            ));
+        } else {
+            for v in &self.findings {
+                s.push_str(&format!(
+                    "[{}] {}\n     evidence: {}\n",
+                    v.severity.to_uppercase(),
+                    v.message,
+                    v.evidence
+                ));
+            }
         }
 
         s.push_str("\n[BREAKDOWN]\n");
@@ -152,23 +151,23 @@ impl VulnerabilityReport {
         }
 
         if self.findings.is_empty() {
-            s.push_str("_No known vulnerabilities detected._\n");
-            return s;
+            s.push_str("_No known vulnerabilities detected._\n\n");
+        } else {
+            s.push_str(&format!("## Findings ({})\n\n", self.findings.len()));
+            s.push_str("| Severity | Message | Evidence |\n");
+            s.push_str("|----------|---------|----------|\n");
+            for v in &self.findings {
+                s.push_str(&format!(
+                    "| {} | {} | {} |\n",
+                    v.severity,
+                    v.message,
+                    v.evidence.replace('|', "\\|").replace('\n', " ")
+                ));
+            }
+            s.push('\n');
         }
 
-        s.push_str(&format!("## Findings ({})\n\n", self.findings.len()));
-        s.push_str("| Severity | Message | Evidence |\n");
-        s.push_str("|----------|---------|----------|\n");
-        for v in &self.findings {
-            s.push_str(&format!(
-                "| {} | {} | {} |\n",
-                v.severity,
-                v.message,
-                v.evidence.replace('|', "\\|").replace('\n', " ")
-            ));
-        }
-
-        s.push_str("\n## Breakdown\n\n");
+        s.push_str("## Breakdown\n\n");
         s.push_str("| Category | Count |\n|----------|-------|\n");
         s.push_str(&format!(
             "| Empty passwords | {} |\n",

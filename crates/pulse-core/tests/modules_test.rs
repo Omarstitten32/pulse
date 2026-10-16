@@ -400,11 +400,22 @@ fn empty_vuln_report() -> VulnerabilityReport {
 
 #[test]
 fn vuln_render_text_empty_shows_clean_message() {
-    let r = empty_vuln_report();
+    // Construct an empty report to exercise the empty branch.
+    // The breakdown is now always present (structural invariant),
+    // only the findings message changes.
+    let r = VulnerabilityReport {
+        score: Some(100),
+        sources_read: 7,
+        sources_total: 7,
+        confidence: pulse_core::Confidence::High,
+        ..Default::default()
+    };
     let s = r.render_text();
-    assert!(s.contains("VULNERABILITY REPORT"));
     assert!(s.contains("No known vulnerabilities detected."));
-    assert!(!s.contains("[BREAKDOWN]"));
+    // Structural sections are present regardless of findings.
+    assert!(s.contains("[BREAKDOWN]"));
+    assert!(s.contains("empty_passwords"));
+    assert!(s.contains("writable /etc/passwd"));
 }
 
 #[test]
