@@ -1,6 +1,6 @@
 # Pulse — Architecture
 
-> Status: v1.8.0 · Last updated: 2026-10-13
+> Status: v1.9.0 · Last updated: 2026-10-13
 
 This document describes the internal structure of Pulse. It is intended
 for contributors and for anyone who needs to understand how the binary

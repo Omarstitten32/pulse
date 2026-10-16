@@ -1,6 +1,6 @@
 # Pulse — Reproducibility
 
-> Status: v1.8.0 · Last updated: 2026-10-13
+> Status: v1.9.0 · Last updated: 2026-10-13
 
 This document explains how to verify that a Pulse binary was built
 from the source code published in the repository, and not from a
@@ -22,6 +22,16 @@ Given:
 ...the resulting binary has the same sha256 regardless of the path
 the source was cloned into, the hostname of the machine, or the
 order of operations.
+
+## Reference Hash for v1.9.0
+
+    size:   1052824 bytes
+    sha256: e0376a1f2f11f7d7faa38a3f9c72c53a0b62af8a78e3ef2277f407a6be0e5b4c
+    linker: rust-lld (self-contained, no external musl-gcc required)
+
+This hash is reproducible on any Linux/Android host that uses the
+pinned toolchain (1.99.0) with Rust's built-in self-contained linker
+for `aarch64-unknown-linux-musl`.
 
 ## Reference Hash for v1.8.0
 

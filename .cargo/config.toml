@@ -1,5 +1,14 @@
-[target.aarch64-unknown-linux-musl]
-linker = "musl-gcc"
+# Cross-compile linker configuration
+#
+# aarch64-unknown-linux-musl:
+#   Rust 1.99+ ships a self-contained musl toolchain (rust-lld + musl libc).
+#   No external linker is needed, so we do NOT set one here.
+#   Local Kali users who want to force musl-gcc can export:
+#     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc
+#
+# x86_64-unknown-linux-musl:
+#   On Ubuntu CI, musl-tools provides an x86_64 musl-gcc.
+#   Set it explicitly since the CI runner is x86_64.
 
 [target.x86_64-unknown-linux-musl]
 linker = "musl-gcc"
