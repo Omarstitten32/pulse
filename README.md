@@ -6,8 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.99.0-orange.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20android-blue.svg)]()
-[![Size](https://img.shields.io/badge/binary-988%20KB-green.svg)]()
-[![Version](https://img.shields.io/badge/version-1.10.4-blueviolet.svg)]()
+[![Size](https://img.shields.io/badge/binary-1.2%20MB-green.svg)]()
+[![Version](https://img.shields.io/badge/version-1.11.0-blueviolet.svg)]()
 [![Static](https://img.shields.io/badge/linking-static-brightgreen.svg)]()
 [![Reproducible](https://img.shields.io/badge/build-reproducible-brightgreen.svg)](docs/REPRODUCIBILITY.md)
 
@@ -39,6 +39,31 @@ not a UI wrapper around shell commands.
 - **Zero network** — cannot phone home, cannot leak data.
 - **No daemon** — every invocation is a one-shot process.
 - **Fast** — every command completes in under a second on modern hardware.
+
+
+---
+
+## Interactive Dashboard
+
+`pulse dashboard` opens a full-screen TUI with four live panels:
+
+    +-------------------+-------------------+
+    | TRUST             | HARDENING         |
+    | Score : 58/100 (F)| Score : 44/112 (F)|
+    | [#####.....]      | [####......]      |
+    | Signals : 18      | Readable : 19/22  |
+    |   * 9  * 1  * 1   |                   |
+    +-------------------+-------------------+
+    | CPU               | MEMORY            |
+    | Arch : aarch64    | Total : 10873 MiB |
+    | Cores : 8         | Used  : 4328 MiB  |
+    | Avg MHz : 887     | [#####.....]      |
+    +-------------------+-------------------+
+    | [q]uit   [r]efresh                    |
+    +---------------------------------------+
+
+Built with `ratatui`. Runs entirely in the terminal. No daemon, no
+network, no window manager required. Press `q` to exit.
 
 ---
 
@@ -361,7 +386,7 @@ design and threat model.
 | rkhunter | 200 KB | No | perl | rootkits only |
 | osquery | 40 MB | No | daemon | SQL queries |
 | Falco | 50+ MB | No | eBPF | runtime security |
-| **Pulse** | **0.96 MB** | **Yes** | **none** | **all of the above** |
+| **Pulse** | **1.2 MB** | **Yes** | **none** | **all of the above** |
 
 - Zero runtime dependencies — no Python, no Perl, no Bash runtime
 - Static binary — runs on any Linux/Android without installing libraries

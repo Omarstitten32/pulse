@@ -4,6 +4,8 @@ use std::process::ExitCode;
 
 use pulse_core::{Format, JsonStyle, Target};
 
+mod dashboard;
+
 // ----------------------------------------------------------
 // CLI parsing
 // ----------------------------------------------------------
@@ -135,6 +137,10 @@ fn main() -> ExitCode {
     }
 
     let content: Result<String, String> = match command {
+        "dashboard" | "dash" => match dashboard::run() {
+            Ok(()) => Ok(String::new()),
+            Err(e) => Err(e),
+        },
         "help" => Ok(render_help()),
         "version" => Ok(format!("{}\n", pulse_core::banner())),
         "platform" => generate_platform(&cli).map_err(|e| e.to_string()),
@@ -413,6 +419,7 @@ COMMANDS:\n\
     verify      Verify a signed file (--pubkey=<hex> optional)\n\
     all         Run all modules, produce composite report\n\
     formats     List supported output formats\n\
+    dashboard   Interactive TUI dashboard\n\
     help        Show this help message\n\n\
 OPTIONS:\n\
     --format=<fmt>   Output format: text | json | markdown\n\

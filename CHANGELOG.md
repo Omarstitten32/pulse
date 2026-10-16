@@ -7,6 +7,44 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.11.0] — 2026-10-16
+
+First minor release with a new feature: an interactive terminal
+dashboard. Six patches (1.10.0 → 1.10.4) hardened the security
+engines; 1.11.0 makes the tool pleasant to look at.
+
+### Added
+
+- **`pulse dashboard`** — an interactive TUI rendering four live
+  panels: Trust, Hardening, CPU, Memory.
+
+  - Colored score bars (green/yellow/red based on thresholds)
+  - `r` refreshes all panels from the kernel
+  - `q` or `Esc` exits cleanly and restores the terminal
+  - Memory usage is computed from `available` (not `free`), so the
+    displayed percentage matches what the system reports as
+    genuinely free for applications.
+
+- New workspace dependencies:
+  - `ratatui = "0.29"`
+  - `crossterm = "0.28"`
+
+- `dashboard` and `dash` aliases in the CLI dispatch table.
+- Entry in `pulse help`.
+
+### Changed
+
+- Binary size grows from 988 KB to ~1.2 MB (the TUI stack is
+  included unconditionally). This is the first release above 1 MB.
+- The `pulse-cli` crate now has one additional module:
+  `src/dashboard.rs` (~400 lines).
+
+### Notes
+
+The dashboard is Phase 1 of a larger plan. Future phases will add
+tab switching, a help overlay, and one-shot actions (snapshot,
+copy-to-clipboard). Those will land in 1.12.0.
+
 ## [1.10.4] — 2026-10-16
 
 Fifth patch. Unifies OS detection across the codebase. v1.10.3 fixed
