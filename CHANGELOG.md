@@ -7,6 +7,42 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.10.2] — 2026-10-16
+
+Non-root graceful degradation. Pulse is now fully usable on
+Termux/Android without root. Previously, `pulse all` and
+`pulse snapshot` aborted on the first permission error from a
+restricted kernel file. Now every section is independent.
+
+### Fixed
+
+- `system_info()`: tolerant reads for `/proc/version`,
+  `/proc/sys/kernel/hostname`, `/proc/uptime`, and boot time.
+  Unreadable fields become empty strings or zero.
+- `thermal_info()`: returns empty zone list if `/sys/class/thermal`
+  is unreadable.
+- `network_info()`: returns empty interface list if `/sys/class/net`
+  is unreadable.
+- `drivers_info()`: returns empty module list if `/proc/modules`
+  is unreadable.
+- `FullReport`: `system`, `cpu`, `memory` are now `Option<T>`.
+- `build_full_report()`: every section is optional; failed sections
+  are recorded in `skipped` with the error message.
+- `pulse all` and `pulse snapshot` now succeed on non-root
+  Android/Termux, emitting a partial report.
+
+### Verified
+
+- Termux (uid 10315, no root): 31/31 audited commands succeed.
+- 1094 workspace tests pass.
+- clippy clean, fmt clean.
+
+### Notes
+
+The JSON schema of `pulse all` changes: `system`, `cpu`, and
+`memory` may now be `null`. Consumers should treat absence as
+"section unavailable".
+
 ## [1.10.1] — 2026-10-16
 
 Hotfix for the v1.10.0 vulnerability report structure. The text and

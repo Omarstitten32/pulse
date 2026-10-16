@@ -20,9 +20,12 @@ pub struct SkippedSection {
 pub struct FullReport {
     pub pulse_version: String,
     pub generated_at_unix: u64,
-    pub system: SystemInfo,
-    pub cpu: CpuInfo,
-    pub memory: MemoryInfo,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system: Option<SystemInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cpu: Option<CpuInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub memory: Option<MemoryInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disk: Option<DiskInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -48,12 +51,30 @@ pub fn build_full_report() -> Result<FullReport, PlatformError> {
 
     let mut skipped = Vec::new();
 
-    // These three are required. If they fail, the report is meaningless.
-    let system = pulse_platform::system_info()?;
-    let cpu = pulse_platform::cpu_info()?;
-    let memory = pulse_platform::memory_info()?;
-
-    // These three are optional. If they fail, record and continue.
+    // Every section is optional: on non-root Android, several kernel
+    // interfaces are restricted. A missing section is recorded in
+    // `skipped` and the report continues.
+    let system = match pulse_platform::system_info() {
+        Ok(v) => Some(v),
+        Err(e) => {
+            skipped.push(skip("system", &e));
+            None
+        }
+    };
+    let cpu = match pulse_platform::cpu_info() {
+        Ok(v) => Some(v),
+        Err(e) => {
+            skipped.push(skip("cpu", &e));
+            None
+        }
+    };
+    let memory = match pulse_platform::memory_info() {
+        Ok(v) => Some(v),
+        Err(e) => {
+            skipped.push(skip("memory", &e));
+            None
+        }
+    };
     let disk = match pulse_platform::disk_info() {
         Ok(v) => Some(v),
         Err(e) => {
@@ -97,14 +118,20 @@ impl FullReport {
         let _ = writeln!(s, "Pulse Version   : {}", self.pulse_version);
         let _ = writeln!(s, "Generated (unix): {}", self.generated_at_unix);
         s.push('\n');
-        s.push_str("--- SYSTEM ---\n");
-        s.push_str(&render::system_text(&self.system));
-        s.push('\n');
-        s.push_str("--- CPU ---\n");
-        s.push_str(&render::cpu_text(&self.cpu));
-        s.push('\n');
-        s.push_str("--- MEMORY ---\n");
-        s.push_str(&render::memory_text(&self.memory));
+        if let Some(sys) = &self.system {
+            s.push_str("--- SYSTEM ---\n");
+            s.push_str(&render::system_text(sys));
+            s.push('\n');
+        }
+        if let Some(cpu) = &self.cpu {
+            s.push_str("--- CPU ---\n");
+            s.push_str(&render::cpu_text(cpu));
+            s.push('\n');
+        }
+        if let Some(mem) = &self.memory {
+            s.push_str("--- MEMORY ---\n");
+            s.push_str(&render::memory_text(mem));
+        }
         if let Some(d) = &self.disk {
             s.push('\n');
             s.push_str("--- DISK ---\n");
@@ -136,12 +163,18 @@ impl FullReport {
         s.push_str("# Pulse Full Report\n\n");
         let _ = writeln!(s, "- **Pulse Version:** {}", self.pulse_version);
         let _ = writeln!(s, "- **Generated (unix):** {}", self.generated_at_unix);
-        s.push_str("\n## System\n\n");
-        s.push_str(&render::system_markdown(&self.system));
-        s.push_str("\n## CPU\n\n");
-        s.push_str(&render::cpu_markdown(&self.cpu));
-        s.push_str("\n## Memory\n\n");
-        s.push_str(&render::memory_markdown(&self.memory));
+        if let Some(sys) = &self.system {
+            s.push_str("\n## System\n\n");
+            s.push_str(&render::system_markdown(sys));
+        }
+        if let Some(cpu) = &self.cpu {
+            s.push_str("\n## CPU\n\n");
+            s.push_str(&render::cpu_markdown(cpu));
+        }
+        if let Some(mem) = &self.memory {
+            s.push_str("\n## Memory\n\n");
+            s.push_str(&render::memory_markdown(mem));
+        }
         if let Some(d) = &self.disk {
             s.push_str("\n## Disk\n\n");
             s.push_str(&render::disk_markdown(d));

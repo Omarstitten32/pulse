@@ -6,8 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.99.0-orange.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20android-blue.svg)]()
-[![Size](https://img.shields.io/badge/binary-1.05%20MB-green.svg)]()
-[![Version](https://img.shields.io/badge/version-1.9.0-blueviolet.svg)]()
+[![Size](https://img.shields.io/badge/binary-988%20KB-green.svg)]()
+[![Version](https://img.shields.io/badge/version-1.10.2-blueviolet.svg)]()
 [![Static](https://img.shields.io/badge/linking-static-brightgreen.svg)]()
 [![Reproducible](https://img.shields.io/badge/build-reproducible-brightgreen.svg)](docs/REPRODUCIBILITY.md)
 
@@ -46,13 +46,37 @@ not a UI wrapper around shell commands.
 
 ### Download (once a release is published)
 
-    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.10.1/pulse-v1.10.1-aarch64-linux-static -o pulse
+    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.10.2/pulse-v1.10.2-aarch64-linux-static -o pulse
     chmod +x pulse
 
 Verify the download against the reference `sha256`:
 
     sha256sum pulse
     # Reference hash is published in the release notes.
+
+
+### On Termux / Android
+
+`/sdcard` is mounted with `noexec`. Download the binary into
+Termux's home directory, not shared storage:
+
+    cd ~
+    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.10.2/pulse-v1.10.2-aarch64-linux-static -o pulse
+    chmod 755 pulse
+    ./pulse version
+
+Pulse works without root. Commands whose underlying kernel interface
+is not readable return an empty report with a warning instead of
+failing. `pulse all` and `pulse snapshot` succeed and list the
+missing sections under a `skipped` field.
+
+    ./pulse all
+    # On non-root Termux, the output ends with:
+    #   --- SKIPPED ---
+    #     [skip] thermal - i/o error reading /sys/class/thermal: Permission denied
+    #     [skip] network - i/o error reading /sys/class/net: Permission denied
+    #     [skip] drivers - i/o error reading /proc/modules: Permission denied
+
 
 ### Run
 
@@ -80,6 +104,11 @@ Pulse works in two modes.
     ./pulse all
 
 Pulse honestly reports when data is unavailable. It never guesses.
+
+In restricted (non-root) mode, commands whose underlying kernel
+interface is not readable return an empty report with a warning
+instead of aborting. `pulse all` and `pulse snapshot` succeed and
+list the missing sections under a `skipped` field.
 
 ### Command Root Requirements
 
@@ -332,7 +361,7 @@ design and threat model.
 | rkhunter | 200 KB | No | perl | rootkits only |
 | osquery | 40 MB | No | daemon | SQL queries |
 | Falco | 50+ MB | No | eBPF | runtime security |
-| **Pulse** | **1.05 MB** | **Yes** | **none** | **all of the above** |
+| **Pulse** | **0.94 MB** | **Yes** | **none** | **all of the above** |
 
 - Zero runtime dependencies — no Python, no Perl, no Bash runtime
 - Static binary — runs on any Linux/Android without installing libraries
@@ -376,11 +405,11 @@ Two independent builds of the same tag produce byte-identical output.
 
     file:   ELF 64-bit LSB executable, ARM aarch64, statically linked, stripped
     size:   ~1.05 MB
-    sha256: a0155fd0d89ecf22659687cad8ed371a83a9aa2fa5d5af26ebc7289607cf4b51
+    sha256: bd88bf6c224edd717d3e7cf58a932a5f47b88463c2fbfa642b64b19aaf46f209
 
 Verify with:
 
-    git checkout v1.10.1
+    git checkout v1.10.2
     cargo build --release --target=aarch64-unknown-linux-musl
     sha256sum target/aarch64-unknown-linux-musl/release/pulse
 
@@ -401,7 +430,7 @@ Full procedure in [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md).
 
     git clone https://github.com/Omarstitten32/pulse
     cd pulse
-    git checkout v1.10.1
+    git checkout v1.10.2
     cargo build --release --target=aarch64-unknown-linux-musl
     ./target/aarch64-unknown-linux-musl/release/pulse --version
 

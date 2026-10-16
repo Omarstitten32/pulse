@@ -13,14 +13,22 @@ fn read_file(path: &str) -> Result<String> {
 // -----------------------------------------------------------
 
 pub fn system_info() -> Result<SystemInfo> {
-    let kernel_version = read_file("/proc/version")?
+    // Tolerant reads: if a specific file is not readable (e.g. on Android
+    // without root, /proc/version is restricted), fall back to an empty
+    // value instead of failing the whole command. This is critical for
+    // the `pulse all` and `pulse snapshot` use cases on non-root hosts.
+    let kernel_version = read_file("/proc/version")
+        .unwrap_or_default()
         .lines()
         .next()
         .unwrap_or("")
         .trim()
         .to_string();
 
-    let hostname = read_file("/proc/sys/kernel/hostname")?.trim().to_string();
+    let hostname = read_file("/proc/sys/kernel/hostname")
+        .unwrap_or_default()
+        .trim()
+        .to_string();
 
     let os_name = read_os_name();
 
@@ -29,8 +37,8 @@ pub fn system_info() -> Result<SystemInfo> {
         os_version: read_os_version(),
         kernel_version,
         hostname,
-        uptime_seconds: read_uptime()?,
-        boot_time_unix: read_boot_time()?,
+        uptime_seconds: read_uptime().unwrap_or(0),
+        boot_time_unix: read_boot_time().unwrap_or(0),
         architecture: std::env::consts::ARCH.to_string(),
         pointer_width: (std::mem::size_of::<usize>() * 8) as u8,
         endianness: if cfg!(target_endian = "little") {
@@ -423,8 +431,10 @@ fn classify_iface(path: &str) -> Option<String> {
 
 pub fn network_info() -> Result<NetworkInfo> {
     let mut interfaces = Vec::new();
-    let entries =
-        std::fs::read_dir("/sys/class/net").map_err(|e| PlatformError::io("/sys/class/net", e))?;
+    // Tolerant: on non-root Android, /sys/class/net is restricted.
+    let Ok(entries) = std::fs::read_dir("/sys/class/net") else {
+        return Ok(NetworkInfo { interfaces });
+    };
     let mut names: Vec<String> = Vec::new();
     for e in entries.flatten() {
         if let Some(n) = e.file_name().to_str() {
@@ -522,8 +532,11 @@ use crate::types::{GpuDevice, GpuInfo, ThermalInfo, ThermalZone};
 
 pub fn thermal_info() -> Result<ThermalInfo> {
     let mut zones = Vec::new();
-    let entries = std::fs::read_dir("/sys/class/thermal")
-        .map_err(|e| PlatformError::io("/sys/class/thermal", e))?;
+    // Tolerant: on non-root Android, /sys/class/thermal is often
+    // unreadable. Return an empty report rather than failing.
+    let Ok(entries) = std::fs::read_dir("/sys/class/thermal") else {
+        return Ok(ThermalInfo { zones });
+    };
 
     for e in entries.flatten() {
         let name = e.file_name();
@@ -1350,7 +1363,8 @@ pub(crate) fn parse_modules(content: &str) -> Vec<DriverModule> {
 }
 
 pub fn drivers_info() -> Result<DriversInfo> {
-    let raw = read_file("/proc/modules")?;
+    // Tolerant: on non-root Android, /proc/modules is restricted.
+    let raw = read_file("/proc/modules").unwrap_or_default();
     let modules = parse_modules(&raw);
     let total = modules.len() as u32;
     Ok(DriversInfo { total, modules })
