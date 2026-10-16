@@ -7,6 +7,40 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.10.3] — 2026-10-16
+
+Fourth patch. Fixes platform detection so that a static binary
+compiled for `aarch64-unknown-linux-musl` correctly reports
+`os: android` when it runs on Android. Previously, `std::env::consts::OS`
+returned the compile-time value (`"linux"`), which was misleading on
+Android/Termux.
+
+This was discovered during a comprehensive dynamic-vs-static audit
+on Termux: the static binary and the Termux-native dynamic binary
+disagreed about `os` on the same machine.
+
+### Fixed
+
+- `pulse_platform::os()` now performs runtime detection first.
+  It probes for Android-specific markers (`/system/build.prop`,
+  `/system/bin/init`, `/system/bin/app_process`) before falling back
+  to `std::env::consts::OS`.
+- Affected commands: `platform`, `system`, `snapshot`,
+  `merkle-leaves`, and the `os` field in `--format=json` and
+  `--format=markdown` output for these commands.
+
+### Verified
+
+- On Kali chroot (not Android): `os: linux` (correct).
+- On Termux/Android: `os: android` (correct).
+- Dynamic Termux build: `os: android` (correct).
+
+### Notes
+
+This changes the `os` field in JSON output. On Android, consumers
+that previously saw `"os": "linux"` will now see `"os": "android"`.
+This is the intended correction.
+
 ## [1.10.2] — 2026-10-16
 
 Non-root graceful degradation. Pulse is now fully usable on

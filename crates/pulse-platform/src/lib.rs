@@ -22,7 +22,40 @@ pub fn arch() -> &'static str {
     std::env::consts::ARCH
 }
 pub fn os() -> &'static str {
-    std::env::consts::OS
+    // Runtime detection first: a static musl binary compiled for
+    // aarch64-unknown-linux-musl reports consts::OS == "linux", but
+    // when it runs on Android the environment is Android, not Linux.
+    // Probe for Android-specific markers before falling back.
+    if is_android_runtime() {
+        "android"
+    } else {
+        std::env::consts::OS
+    }
+}
+
+/// Detect an Android runtime by looking for well-known markers.
+/// These exist on all Android devices (Google's CTS requires them)
+/// and on no conventional Linux distribution.
+fn is_android_runtime() -> bool {
+    // 1. Google-mandated build metadata
+    if std::path::Path::new("/system/build.prop").exists() {
+        return true;
+    }
+    // 2. Android init process
+    if let Ok(comm) = std::fs::read_to_string("/proc/1/comm") {
+        if comm.trim() == "init" {
+            // Distinguish from systemd (which is also "init" on some distros)
+            // by checking for Android-specific init properties
+            if std::path::Path::new("/system/bin/init").exists() {
+                return true;
+            }
+        }
+    }
+    // 3. Android root directory layout
+    if std::path::Path::new("/system/bin/app_process").exists() {
+        return true;
+    }
+    false
 }
 pub fn family() -> &'static str {
     std::env::consts::FAMILY
