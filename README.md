@@ -7,7 +7,7 @@
 [![Rust](https://img.shields.io/badge/rust-1.99.0-orange.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20android-blue.svg)]()
 [![Size](https://img.shields.io/badge/binary-988%20KB-green.svg)]()
-[![Version](https://img.shields.io/badge/version-1.10.2-blueviolet.svg)]()
+[![Version](https://img.shields.io/badge/version-1.10.4-blueviolet.svg)]()
 [![Static](https://img.shields.io/badge/linking-static-brightgreen.svg)]()
 [![Reproducible](https://img.shields.io/badge/build-reproducible-brightgreen.svg)](docs/REPRODUCIBILITY.md)
 
