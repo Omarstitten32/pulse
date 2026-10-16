@@ -25,8 +25,8 @@ order of operations.
 
 ## Reference Hash for v1.9.0
 
-    size:   1052824 bytes
-    sha256: e0376a1f2f11f7d7faa38a3f9c72c53a0b62af8a78e3ef2277f407a6be0e5b4c
+    size:   1002816 bytes
+    sha256: f1302f6bbcc533c16060760aedf364120e4c0d94e2c781d33da89dfd1420da4b
     linker: rust-lld (self-contained, no external musl-gcc required)
 
 This hash is reproducible on any Linux/Android host that uses the
