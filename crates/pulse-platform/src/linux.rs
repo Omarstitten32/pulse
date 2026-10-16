@@ -64,7 +64,10 @@ pub(crate) fn parse_os_release(content: &str) -> (Option<String>, Option<String>
 }
 
 fn read_os_name() -> String {
-    if cfg!(target_os = "android") {
+    // Runtime detection: a static musl binary compiled for
+    // aarch64-unknown-linux-musl sees cfg!(target_os = "android") == false
+    // even when it runs on Android. Use the shared runtime probe.
+    if crate::is_android_runtime() {
         return "Android".to_string();
     }
     if let Ok(content) = fs::read_to_string("/etc/os-release") {
@@ -76,7 +79,8 @@ fn read_os_name() -> String {
 }
 
 fn read_os_version() -> String {
-    if cfg!(target_os = "android") {
+    // Runtime detection: works for static musl binaries on Android.
+    if crate::is_android_runtime() {
         if let Ok(content) = fs::read_to_string("/system/build.prop") {
             for line in content.lines() {
                 if let Some(v) = line.strip_prefix("ro.build.version.release=") {

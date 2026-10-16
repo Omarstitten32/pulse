@@ -29,7 +29,14 @@ fn arch_is_non_empty() {
 
 #[test]
 fn os_matches_env_consts() {
-    assert_eq!(os(), std::env::consts::OS);
+    // On Linux without Android markers, os() should equal consts::OS.
+    // On an Android runtime (e.g. a static musl binary running on
+    // Termux), os() correctly returns "android" while consts::OS is
+    // the compile-time value ("linux"). This test only asserts the
+    // equality in the non-Android case.
+    if !std::path::Path::new("/system/build.prop").exists() {
+        assert_eq!(os(), std::env::consts::OS);
+    }
 }
 
 #[test]

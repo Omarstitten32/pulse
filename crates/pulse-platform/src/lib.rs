@@ -36,7 +36,7 @@ pub fn os() -> &'static str {
 /// Detect an Android runtime by looking for well-known markers.
 /// These exist on all Android devices (Google's CTS requires them)
 /// and on no conventional Linux distribution.
-fn is_android_runtime() -> bool {
+pub(crate) fn is_android_runtime() -> bool {
     // 1. Google-mandated build metadata
     if std::path::Path::new("/system/build.prop").exists() {
         return true;

@@ -7,6 +7,36 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.10.4] — 2026-10-16
+
+Fifth patch. Unifies OS detection across the codebase. v1.10.3 fixed
+`pulse platform`, but `pulse system` still reported the compile-time
+value because it went through `read_os_name()` in linux.rs, which
+used `cfg!(target_os = "android")` — a compile-time flag.
+
+On a static musl binary running on Android, this flag is false, so
+`pulse system` reported "Linux" while `pulse platform` reported
+"android". They now agree.
+
+### Fixed
+
+- `read_os_name()` in linux.rs now uses `crate::is_android_runtime()`
+  (runtime detection) instead of `cfg!(target_os = "android")`
+  (compile-time).
+- `read_os_version()` uses the same runtime detection.
+- `is_android_runtime()` is now `pub(crate)` so linux.rs can use it.
+- `os_matches_env_consts` test now skips the assertion when the
+  binary is running on an Android runtime, since os() will correctly
+  return "android" while consts::OS remains the compile-time value.
+
+### Verified
+
+- On Kali chroot: `system` reports "Kali GNU/Linux Rolling"
+  (from /etc/os-release).
+- On Termux/Android: `system` now reports "Android" (from runtime
+  detection), matching `platform`.
+- All 1094 tests still pass.
+
 ## [1.10.3] — 2026-10-16
 
 Fourth patch. Fixes platform detection so that a static binary
