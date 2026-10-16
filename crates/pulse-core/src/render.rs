@@ -1,10 +1,34 @@
 //! Renderers for platform data structures.
 
 use crate::format::JsonStyle;
-use pulse_platform::{CpuInfo, MemoryInfo, SystemInfo};
+use pulse_platform::{CpuInfo, MemoryInfo, PlatformInfo, SystemInfo};
 use serde::Serialize;
 
 // ---------- generic JSON helper ----------
+
+pub fn platform_text(info: &PlatformInfo) -> String {
+    format!(
+        "arch           : {}\n\
+         os             : {}\n\
+         family         : {}\n\
+         pointer_width  : {} bits\n\
+         endianness     : {}\n",
+        info.arch, info.os, info.family, info.pointer_width, info.endianness
+    )
+}
+
+pub fn platform_markdown(info: &PlatformInfo) -> String {
+    format!(
+        "| Field | Value |\n\
+         |-------|-------|\n\
+         | arch | `{}` |\n\
+         | os | `{}` |\n\
+         | family | `{}` |\n\
+         | pointer_width | {} bits |\n\
+         | endianness | `{}` |\n",
+        info.arch, info.os, info.family, info.pointer_width, info.endianness
+    )
+}
 
 pub fn to_json<T: Serialize>(value: &T, style: JsonStyle) -> String {
     let result = match style {

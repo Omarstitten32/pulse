@@ -1449,23 +1449,26 @@ pub(crate) fn detect_hypervisor_from_product(
 pub fn vm_info() -> Result<VmInfo> {
     let mut evidences = Vec::new();
     let mut hypervisor: Option<String> = None;
+    let mut strong_evidence = false;
 
-    // Check /proc/cpuinfo for hypervisor flag
+    // Strong signal 1: cpuinfo hypervisor flag (definitive)
     if let Ok(raw) = std::fs::read_to_string("/proc/cpuinfo") {
         for line in raw.lines() {
             if line.starts_with("flags") && line.contains(" hypervisor") {
                 evidences.push("cpuinfo: hypervisor flag".to_string());
+                strong_evidence = true;
                 break;
             }
         }
     }
 
-    // Check /sys/hypervisor
-    if std::path::Path::new("/sys/hypervisor").exists() {
+    // Weak signal: /sys/hypervisor exists (common on Android due to AVB, NOT proof of VM)
+    let has_sys_hypervisor = std::path::Path::new("/sys/hypervisor").exists();
+    if has_sys_hypervisor {
         evidences.push("path: /sys/hypervisor".to_string());
     }
 
-    // Read DMI product name
+    // Strong signal 2: DMI product/vendor matches known hypervisor
     let product_name = read_opt("/sys/class/dmi/id/product_name");
     let sys_vendor = read_opt("/sys/class/dmi/id/sys_vendor");
 
@@ -1473,11 +1476,25 @@ pub fn vm_info() -> Result<VmInfo> {
         if let Some((hy, needle)) = detect_hypervisor_from_product(p) {
             hypervisor = Some(hy.to_string());
             evidences.push(format!("dmi.product: {needle}"));
+            strong_evidence = true;
+        }
+    }
+    if hypervisor.is_none() {
+        if let Some(ref v) = sys_vendor {
+            if let Some((hy, needle)) = detect_hypervisor_from_product(v) {
+                hypervisor = Some(hy.to_string());
+                evidences.push(format!("dmi.vendor: {needle}"));
+                strong_evidence = true;
+            }
         }
     }
 
+    // A device is a VM only when we have a strong signal.
+    // /sys/hypervisor alone is not sufficient (present on most Android kernels).
+    let is_vm = strong_evidence;
+
     Ok(VmInfo {
-        is_vm: !evidences.is_empty(),
+        is_vm,
         hypervisor,
         product_name,
         sys_vendor,

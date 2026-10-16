@@ -23,7 +23,12 @@ pub struct Check {
     pub path: String,
     pub value: String,
     pub expected: String,
+    /// Tri-state result: Ok / Fail / Unreadable.
+    pub state: CheckState,
+    /// Kept for backward compatibility: true iff state == Ok.
     pub enabled: bool,
+    /// true iff the underlying tunable could be read.
+    pub readable: bool,
     pub weight: u32,
     pub critical: bool,
 }
@@ -43,6 +48,37 @@ pub enum Severity {
     Medium,
     Low,
     Info,
+}
+
+/// Result of evaluating a single hardening check.
+///
+/// Distinguishes "the kernel says this is insecure" (Fail) from
+/// "we could not read the tunable" (Unreadable). Only Ok contributes
+/// to the score; Fail and Unreadable both leave the score unfulfilled,
+/// but only Fail is treated as an actual security finding.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum CheckState {
+    Ok,
+    Fail,
+    Unreadable,
+}
+
+impl CheckState {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Ok => "OK",
+            Self::Fail => "FAIL",
+            Self::Unreadable => "UNREADABLE",
+        }
+    }
+
+    pub fn mark(self) -> &'static str {
+        match self {
+            Self::Ok => "[+]",
+            Self::Fail => "[-]",
+            Self::Unreadable => "[?]",
+        }
+    }
 }
 
 impl Severity {
@@ -65,27 +101,39 @@ impl HardeningReport {
         let mut max_score = 0u32;
 
         for spec in CHECKS {
-            let value = read_trim(spec.path).unwrap_or_default();
-            let enabled = value_matches(&value, spec);
+            let value_opt: Option<String> = read_trim(spec.path);
+
+            let (state, value) = match value_opt {
+                Some(v) => {
+                    let enabled = value_matches(&v, spec);
+                    let state = if enabled {
+                        CheckState::Ok
+                    } else {
+                        CheckState::Fail
+                    };
+                    (state, v)
+                }
+                None => (CheckState::Unreadable, String::new()),
+            };
 
             max_score += spec.weight;
-            if enabled {
-                score += spec.weight;
-            } else {
-                findings.push(Finding {
-                    severity: spec.severity,
-                    check_id: spec.id.into(),
-                    message: format!("{} is not set to a secure value", spec.name),
-                    evidence: format!(
-                        "{} = {}",
-                        spec.path,
-                        if value.is_empty() {
-                            "<unreadable>"
-                        } else {
-                            &value
-                        }
-                    ),
-                });
+
+            match state {
+                CheckState::Ok => {
+                    score += spec.weight;
+                }
+                CheckState::Fail => {
+                    findings.push(Finding {
+                        severity: spec.severity,
+                        check_id: spec.id.into(),
+                        message: format!("{} is not set to a secure value", spec.name),
+                        evidence: format!("{} = {}", spec.path, value),
+                    });
+                }
+                CheckState::Unreadable => {
+                    // Not a security finding. Recorded separately so users
+                    // know the score is based on partial data.
+                }
             }
 
             checks.push(Check {
@@ -94,7 +142,9 @@ impl HardeningReport {
                 path: spec.path.into(),
                 value,
                 expected: spec.expected.into(),
-                enabled,
+                state,
+                enabled: matches!(state, CheckState::Ok),
+                readable: !matches!(state, CheckState::Unreadable),
                 weight: spec.weight,
                 critical: spec.severity as u8 == Severity::Critical as u8,
             });
@@ -118,21 +168,26 @@ impl HardeningReport {
             self.score, self.max_score, self.grade
         ));
         s.push_str(&format!("Checks: {}\n", self.checks.len()));
+        s.push_str(&format!(
+            "Readable: {}/{} ({} unreadable)\n",
+            self.readable_count(),
+            self.checks.len(),
+            self.unreadable_count()
+        ));
         s.push_str(&format!("Issues: {}\n\n", self.findings.len()));
 
         s.push_str("[CHECKS]\n");
         for c in &self.checks {
-            let mark = if c.enabled { "[+]" } else { "[-]" };
             s.push_str(&format!(
                 "  {} {:<28} {:<10} expected={} actual={}\n",
-                mark,
+                c.state.mark(),
                 c.name,
-                if c.enabled { "OK" } else { "FAIL" },
+                c.state.label(),
                 c.expected,
-                if c.value.is_empty() {
-                    "<unreadable>"
+                if c.readable {
+                    c.value.as_str()
                 } else {
-                    &c.value
+                    "<unreadable>"
                 }
             ));
         }
@@ -164,16 +219,15 @@ impl HardeningReport {
         s.push_str("| State | Check | Expected | Actual | Weight |\n");
         s.push_str("|-------|-------|----------|--------|--------|\n");
         for c in &self.checks {
-            let mark = if c.enabled { "OK" } else { "FAIL" };
             s.push_str(&format!(
                 "| {} | `{}` | {} | {} | {} |\n",
-                mark,
+                c.state.label(),
                 c.name,
                 c.expected,
-                if c.value.is_empty() {
-                    "<unreadable>"
+                if c.readable {
+                    c.value.as_str()
                 } else {
-                    &c.value
+                    "<unreadable>"
                 },
                 c.weight
             ));
@@ -195,13 +249,25 @@ impl HardeningReport {
         s
     }
 
+    /// Number of checks whose tunable could be read (Ok or Fail).
+    pub fn readable_count(&self) -> usize {
+        self.checks.iter().filter(|c| c.readable).count()
+    }
+
+    /// Number of checks that were unreadable (permission denied, missing).
+    pub fn unreadable_count(&self) -> usize {
+        self.checks.iter().filter(|c| !c.readable).count()
+    }
+
     pub fn summary(&self) -> String {
         format!(
-            "Hardening score: {}/{} (grade {}) — {} findings",
+            "Hardening score: {}/{} (grade {}) — {} findings ({} readable, {} unreadable)",
             self.score,
             self.max_score,
             self.grade,
-            self.findings.len()
+            self.findings.len(),
+            self.readable_count(),
+            self.unreadable_count()
         )
     }
 }

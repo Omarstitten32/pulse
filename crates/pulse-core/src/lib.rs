@@ -14,6 +14,7 @@ pub mod sign;
 pub mod snapshot;
 pub mod timeline;
 pub mod trust;
+pub mod types;
 
 pub use analysis::{build_analysis, AnalysisReport};
 pub use anomaly::{build_baseline, check_anomalies, AnomalyReport, Baseline};
@@ -26,6 +27,7 @@ pub use report::{build_full_report, FullReport};
 pub use snapshot::{diff, DiffReport, Snapshot};
 pub use timeline::{build_timeline, TimelineEvent, TimelineReport};
 pub use trust::{build_trust_report, Signal, SignalState, TrustReport, TrustSummary};
+pub use types::Confidence;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");

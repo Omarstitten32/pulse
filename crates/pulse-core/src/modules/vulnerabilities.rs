@@ -3,6 +3,7 @@
 //! Detects known-weak configurations: empty passwords, world-readable
 //! SSH keys, missing PAM controls, insecure mounts, unsigned repositories.
 
+use crate::types::Confidence;
 use serde::Serialize;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -17,7 +18,14 @@ pub struct VulnerabilityReport {
     pub writable_passwd: bool,
     pub writable_shadow: bool,
     pub findings: Vec<Vuln>,
-    pub score: u32,
+    /// 0-100 vulnerability score. `None` when no sources were readable.
+    pub score: Option<u32>,
+    /// Number of scanner sources that successfully read their input.
+    pub sources_read: u32,
+    /// Total scanner sources considered.
+    pub sources_total: u32,
+    /// Confidence level derived from `sources_read / sources_total`.
+    pub confidence: Confidence,
 }
 
 #[derive(Debug, Serialize)]
@@ -30,18 +38,31 @@ pub struct Vuln {
 
 impl VulnerabilityReport {
     pub fn collect() -> Self {
-        let mut r = Self::default();
-
-        r.empty_passwords = scan_empty_passwords();
-        r.world_readable_keys = scan_world_readable_keys();
-        r.insecure_mounts = scan_insecure_mounts();
-        r.unsigned_repos = scan_unsigned_repos();
-        r.dangerous_sudoers = scan_dangerous_sudoers();
-        r.writable_passwd = is_writable("/etc/passwd");
-        r.writable_shadow = is_writable("/etc/shadow");
+        let mut r = Self {
+            empty_passwords: scan_empty_passwords(),
+            world_readable_keys: scan_world_readable_keys(),
+            insecure_mounts: scan_insecure_mounts(),
+            unsigned_repos: scan_unsigned_repos(),
+            dangerous_sudoers: scan_dangerous_sudoers(),
+            writable_passwd: is_writable("/etc/passwd"),
+            writable_shadow: is_writable("/etc/shadow"),
+            ..Default::default()
+        };
 
         r.findings = build_findings(&r);
-        r.score = compute_score(&r);
+
+        let (read, total) = assess_vuln_readability();
+        r.sources_read = read;
+        r.sources_total = total;
+        r.confidence = Confidence::from_counts(read, total);
+
+        // Only assign a score if at least one source was readable.
+        r.score = if read == 0 {
+            None
+        } else {
+            Some(compute_score(&r))
+        };
+
         r
     }
 }
@@ -50,7 +71,20 @@ impl VulnerabilityReport {
     pub fn render_text(&self) -> String {
         let mut s = String::new();
         s.push_str("=== VULNERABILITY REPORT ===\n\n");
-        s.push_str(&format!("Score: {}/100\n", self.score));
+        match self.score {
+            Some(n) => s.push_str(&format!(
+                "Score: {}/100  (Confidence: {} — {}/{} sources)\n",
+                n,
+                self.confidence.label(),
+                self.sources_read,
+                self.sources_total
+            )),
+            None => s.push_str(&format!(
+                "Score: N/A  (Confidence: None — {}/{} sources readable)\n\
+                 Run with elevated privileges for a full scan.\n",
+                self.sources_read, self.sources_total
+            )),
+        }
         s.push_str(&format!("Findings: {}\n\n", self.findings.len()));
 
         if self.findings.is_empty() {
@@ -102,7 +136,20 @@ impl VulnerabilityReport {
     pub fn render_markdown(&self) -> String {
         let mut s = String::new();
         s.push_str("# Vulnerability Report\n\n");
-        s.push_str(&format!("**Score:** {}/100\n\n", self.score));
+        match self.score {
+            Some(n) => s.push_str(&format!(
+                "**Score:** {}/100  ·  **Confidence:** {} ({}/{})\n\n",
+                n,
+                self.confidence.label(),
+                self.sources_read,
+                self.sources_total
+            )),
+            None => s.push_str(&format!(
+                "**Score:** N/A  ·  **Confidence:** None ({}/{})\n\n\
+                 > Run with elevated privileges for a full scan.\n\n",
+                self.sources_read, self.sources_total
+            )),
+        }
 
         if self.findings.is_empty() {
             s.push_str("_No known vulnerabilities detected._\n");
@@ -320,6 +367,36 @@ pub fn build_findings(r: &VulnerabilityReport) -> Vec<Vuln> {
         });
     }
     v
+}
+
+/// Probe the same paths that the vulnerability scanners read from,
+/// and count how many of them are actually readable.
+///
+/// Returns `(read, total)` where `total` is the number of scanners (7).
+fn assess_vuln_readability() -> (u32, u32) {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let home_readable = !home.is_empty() && std::fs::read_dir(&home).is_ok();
+
+    let checks: [bool; 7] = [
+        // 1. empty_passwords — needs /etc/shadow or /etc/passwd
+        std::fs::File::open("/etc/shadow").is_ok() || std::fs::File::open("/etc/passwd").is_ok(),
+        // 2. world_readable_keys — needs $HOME (or /home)
+        home_readable || std::fs::read_dir("/home").is_ok(),
+        // 3. insecure_mounts — needs /proc/mounts or /etc/mtab
+        std::fs::File::open("/proc/mounts").is_ok() || std::fs::File::open("/etc/mtab").is_ok(),
+        // 4. unsigned_repos — needs /etc/apt or /etc/apk/repositories
+        std::fs::read_dir("/etc/apt").is_ok()
+            || std::fs::File::open("/etc/apk/repositories").is_ok(),
+        // 5. dangerous_sudoers — needs /etc/sudoers or /etc/sudoers.d
+        std::fs::File::open("/etc/sudoers").is_ok() || std::fs::read_dir("/etc/sudoers.d").is_ok(),
+        // 6. writable_passwd — needs /etc/passwd
+        std::fs::metadata("/etc/passwd").is_ok(),
+        // 7. writable_shadow — needs /etc/shadow
+        std::fs::metadata("/etc/shadow").is_ok(),
+    ];
+
+    let read = checks.iter().filter(|&&b| b).count() as u32;
+    (read, checks.len() as u32)
 }
 
 pub fn compute_score(r: &VulnerabilityReport) -> u32 {

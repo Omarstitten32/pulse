@@ -3,6 +3,7 @@
 //! Collects open ports, setuid binaries, file capabilities,
 //! world-writable directories, cron entries, SSH keys.
 
+use crate::types::Confidence;
 use serde::Serialize;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -21,7 +22,14 @@ pub struct AttackSurface {
     pub ssh_private_keys: Vec<String>,
     pub docker_socket: bool,
     pub exposed_secrets: Vec<String>,
-    pub score: u32,
+    /// 0-100 attack-surface score. `None` when no sources were readable.
+    pub score: Option<u32>,
+    /// Number of scanner sources that successfully read their input.
+    pub sources_read: u32,
+    /// Total scanner sources considered.
+    pub sources_total: u32,
+    /// Confidence level derived from `sources_read / sources_total`.
+    pub confidence: Confidence,
 }
 
 #[derive(Debug, Serialize)]
@@ -40,20 +48,35 @@ pub struct FileCap {
 
 impl AttackSurface {
     pub fn collect() -> Self {
-        let mut s = Self::default();
-        s.listening_ports = scan_listening_ports();
-        s.suid_binaries = scan_suid();
-        s.sgid_binaries = scan_sgid();
-        s.file_capabilities = scan_file_caps();
-        s.world_writable_etc = scan_world_writable("/etc");
-        s.user_crontabs = scan_user_crontabs();
-        s.system_crontabs = scan_system_crontabs();
-        s.ssh_authorized = scan_ssh_authorized();
-        s.ssh_private_keys = scan_ssh_private();
-        s.docker_socket =
-            Path::new("/var/run/docker.sock").exists() || Path::new("/run/docker.sock").exists();
-        s.exposed_secrets = scan_secrets("/etc");
-        s.score = compute_score(&s);
+        let mut s = Self {
+            listening_ports: scan_listening_ports(),
+            suid_binaries: scan_suid(),
+            sgid_binaries: scan_sgid(),
+            file_capabilities: scan_file_caps(),
+            world_writable_etc: scan_world_writable("/etc"),
+            user_crontabs: scan_user_crontabs(),
+            system_crontabs: scan_system_crontabs(),
+            ssh_authorized: scan_ssh_authorized(),
+            ssh_private_keys: scan_ssh_private(),
+            docker_socket: Path::new("/var/run/docker.sock").exists()
+                || Path::new("/run/docker.sock").exists(),
+            exposed_secrets: scan_secrets("/etc"),
+            ..Default::default()
+        };
+
+        let (read, total) = assess_readability();
+        s.sources_read = read;
+        s.sources_total = total;
+        s.confidence = Confidence::from_counts(read, total);
+
+        // Only assign a score if at least one source was readable.
+        // Otherwise the score would be a meaningless "100/100".
+        s.score = if read == 0 {
+            None
+        } else {
+            Some(compute_score(&s))
+        };
+
         s
     }
 }
@@ -62,7 +85,20 @@ impl AttackSurface {
     pub fn render_text(&self) -> String {
         let mut s = String::new();
         s.push_str("=== ATTACK SURFACE ===\n\n");
-        s.push_str(&format!("Score: {}/100\n\n", self.score));
+        match self.score {
+            Some(n) => s.push_str(&format!(
+                "Score: {}/100  (Confidence: {} — {}/{} sources)\n\n",
+                n,
+                self.confidence.label(),
+                self.sources_read,
+                self.sources_total
+            )),
+            None => s.push_str(&format!(
+                "Score: N/A  (Confidence: None — {}/{} sources readable)\n\
+                 Run with elevated privileges for a full scan.\n\n",
+                self.sources_read, self.sources_total
+            )),
+        }
 
         s.push_str(&format!(
             "[LISTENING PORTS] ({})\n",
@@ -137,7 +173,19 @@ impl AttackSurface {
     pub fn render_markdown(&self) -> String {
         let mut s = String::new();
         s.push_str("# Attack Surface\n\n");
-        s.push_str(&format!("**Score:** {}/100\n\n", self.score));
+        match self.score {
+            Some(n) => s.push_str(&format!(
+                "**Score:** {}/100  ·  **Confidence:** {} ({}/{})\n\n",
+                n,
+                self.confidence.label(),
+                self.sources_read,
+                self.sources_total
+            )),
+            None => s.push_str(&format!(
+                "**Score:** N/A  ·  **Confidence:** None ({}/{})\n\n                 > Run with elevated privileges for a full scan.\n\n",
+                self.sources_read, self.sources_total
+            )),
+        }
 
         s.push_str(&format!(
             "## Listening Ports ({})\n\n",
@@ -461,6 +509,75 @@ pub fn homes() -> Vec<String> {
         }
     }
     out
+}
+
+/// Probe the same paths that the scanners read from, and count how
+/// many scanner sources are actually readable in this environment.
+///
+/// Returns `(read, total)`. `total` is the number of scanners (10).
+///
+/// A source counts as readable if its primary input can be opened or
+/// listed. This is deliberately conservative: we do not attempt to
+/// parse anything here, only to answer the question "would the
+/// scanner have produced real data?"
+fn assess_readability() -> (u32, u32) {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let home_readable = !home.is_empty() && fs::read_dir(&home).is_ok();
+
+    let path_dirs = [
+        "/bin",
+        "/sbin",
+        "/usr/bin",
+        "/usr/sbin",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+    ];
+    let path_readable = path_dirs.iter().any(|p| fs::read_dir(p).is_ok());
+
+    let proc_net_readable = [
+        "/proc/net/tcp",
+        "/proc/net/tcp6",
+        "/proc/net/udp",
+        "/proc/net/udp6",
+    ]
+    .iter()
+    .any(|p| fs::File::open(p).is_ok());
+
+    let etc_readable = fs::read_dir("/etc").is_ok();
+
+    let user_cron_readable = ["/var/spool/cron/crontabs", "/var/spool/cron"]
+        .iter()
+        .any(|p| fs::read_dir(p).is_ok());
+
+    let system_cron_readable =
+        fs::File::open("/etc/crontab").is_ok() || fs::read_dir("/etc/cron.d").is_ok();
+
+    // Scanners and their input sources:
+    //   1. listening_ports  <- /proc/net/*
+    //   2. suid             <- PATH dirs
+    //   3. sgid             <- PATH dirs
+    //   4. file_capabilities<- PATH dirs
+    //   5. world_writable   <- /etc
+    //   6. user_crontabs    <- /var/spool/cron*
+    //   7. system_crontabs  <- /etc/crontab, /etc/cron.d
+    //   8. ssh_authorized   <- $HOME
+    //   9. ssh_private      <- $HOME
+    //  10. exposed_secrets  <- /etc
+    let checks: [bool; 10] = [
+        proc_net_readable,
+        path_readable,
+        path_readable,
+        path_readable,
+        etc_readable,
+        user_cron_readable,
+        system_cron_readable,
+        home_readable,
+        home_readable,
+        etc_readable,
+    ];
+
+    let read = checks.iter().filter(|&&b| b).count() as u32;
+    (read, checks.len() as u32)
 }
 
 pub fn compute_score(s: &AttackSurface) -> u32 {

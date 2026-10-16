@@ -137,7 +137,7 @@ fn main() -> ExitCode {
     let content: Result<String, String> = match command {
         "help" => Ok(render_help()),
         "version" => Ok(format!("{}\n", pulse_core::banner())),
-        "platform" => Ok(render_platform()),
+        "platform" => generate_platform(&cli).map_err(|e| e.to_string()),
         "formats" => Ok(render_formats()),
         "system" => generate_system(&cli).map_err(|e| e.to_string()),
         "cpu" => generate_cpu(&cli).map_err(|e| e.to_string()),
@@ -368,7 +368,7 @@ fn generate_verify(cli: &Cli, positional: &[&str]) -> Result<String, String> {
 fn render_help() -> String {
     format!(
         "{banner}\n{desc}\n\n\
-USAGE:\n    pulse [COMMAND] [OPTIONS]\n\n\
+USAGE:\n    pulse [OPTIONS] [COMMAND]\n\n\
 COMMANDS:\n\
     version     Show version information\n\
     platform    Show platform/architecture info\n\
@@ -428,19 +428,13 @@ OPTIONS:\n\
     )
 }
 
-fn render_platform() -> String {
-    format!(
-        "arch           : {}\n\
-         os             : {}\n\
-         family         : {}\n\
-         pointer_width  : {} bits\n\
-         endianness     : {}\n",
-        pulse_platform::arch(),
-        pulse_platform::os(),
-        pulse_platform::family(),
-        pulse_platform::pointer_width(),
-        pulse_platform::endianness()
-    )
+fn generate_platform(cli: &Cli) -> Result<String, pulse_platform::PlatformError> {
+    let info = pulse_platform::platform_info()?;
+    Ok(match effective_format(cli) {
+        Format::Json => pulse_core::render::to_json(&info, effective_json_style(cli)),
+        Format::Markdown => pulse_core::render::platform_markdown(&info),
+        Format::Text => pulse_core::render::platform_text(&info),
+    })
 }
 
 fn render_formats() -> String {

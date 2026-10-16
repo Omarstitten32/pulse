@@ -14,7 +14,7 @@ pub mod types;
 pub mod linux;
 
 pub use error::{PlatformError, Result};
-pub use types::{CoreInfo, CpuInfo, MemoryInfo, SystemInfo};
+pub use types::{CoreInfo, CpuInfo, MemoryInfo, PlatformInfo, SystemInfo};
 
 // ---------------- Basic (env-based, always available) ----------------
 
@@ -36,6 +36,18 @@ pub fn endianness() -> &'static str {
     } else {
         "big"
     }
+}
+
+/// Structured view of [`arch()`], [`os()`], [`family()`], [`pointer_width()`],
+/// and [`endianness()`] suitable for serialization.
+pub fn platform_info() -> Result<PlatformInfo> {
+    Ok(PlatformInfo {
+        arch: arch().to_string(),
+        os: os().to_string(),
+        family: family().to_string(),
+        pointer_width: pointer_width(),
+        endianness: endianness().to_string(),
+    })
 }
 
 // ---------------- Real system introspection ----------------

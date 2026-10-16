@@ -399,10 +399,22 @@ fn containers_info_detected_consistent_with_evidence() {
 #[test]
 fn vm_info_detected_consistent_with_evidence() {
     let info = vm_info().expect("vm_info must succeed");
+
+    // Strong evidence -> is_vm must be true
     if info.is_vm {
-        assert!(!info.evidences.is_empty());
-    } else {
-        assert!(info.evidences.is_empty());
+        assert!(
+            !info.evidences.is_empty(),
+            "is_vm == true requires at least one evidence entry"
+        );
+    }
+
+    // Weak evidence alone must not flip is_vm to true.
+    // /sys/hypervisor exists on most Android kernels due to AVB and is
+    // therefore treated as weak evidence.
+    let only_weak =
+        info.evidences.len() == 1 && info.evidences[0].starts_with("path: /sys/hypervisor");
+    if only_weak {
+        assert!(!info.is_vm, "weak evidence alone must not mark host as VM");
     }
 }
 

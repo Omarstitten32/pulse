@@ -7,6 +7,49 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.10.0] — 2026-10-16
+
+Second public release. Hardens the security engines so they never
+report a misleading score when the underlying data was not readable.
+Adds a confidence level and explicit source-read/source-total counters
+to every scored module.
+
+### Added
+
+- `pulse_core::Confidence` enum (High / Medium / Low / None) shared
+  by all scored security engines.
+- `attack-surface`: `sources_read`, `sources_total`, `confidence`
+  fields in text, JSON, and markdown output.
+- `vulnerabilities`: same three fields.
+- `pulse-platform::PlatformInfo` struct and `platform_info()` function.
+
+### Changed
+
+- **Breaking (JSON schema)**: `attack-surface.score` and
+  `vulnerabilities.score` are now `Option<u32>`. They are `null` when
+  no source was readable, instead of a misleading `0` or `100`.
+- `platform` now respects `--format=json` and `--format=markdown`
+  and emits a proper `PlatformInfo` struct (previously emitted plain
+  text regardless of the format flag).
+- `pulse all` now reports skipped sections with a reason instead of
+  aborting on the first permission error.
+
+### Fixed
+
+- `hardening`: unreadable checks are now reported as `[?] UNREADABLE`
+  instead of `[-] FAIL`. The score only counts checks that were
+  actually evaluated.
+- `vm`: no longer reports "Is Virtual Machine: yes" on real Android
+  devices. `/sys/hypervisor` alone is not sufficient evidence.
+- `help`: usage line now correctly reads `pulse [OPTIONS] [COMMAND]`.
+- `timeline_test`: `build_timeline_large_window_matches_default` no
+  longer fails on live systems. The assertion is now directional.
+
+### Internal
+
+- Added 12 new regression tests (Confidence, attack-surface, vulns).
+- All 1094 tests pass. Zero clippy warnings.
+
 ## [1.9.0] — 2026-10-15
 
 This is the first public release of Pulse. It consolidates every

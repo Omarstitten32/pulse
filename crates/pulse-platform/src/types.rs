@@ -506,3 +506,16 @@ pub struct HwidSource {
     pub available: bool,
     pub weight: u32,
 }
+
+// ------------------- Platform -------------------
+
+/// Platform identity: architecture, OS, family, pointer width, endianness.
+/// Sourced entirely from `std::env::consts` and `cfg!` — no /proc reads.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformInfo {
+    pub arch: String,
+    pub os: String,
+    pub family: String,
+    pub pointer_width: u8,
+    pub endianness: String,
+}

@@ -1,10 +1,20 @@
 //! Composite report aggregating all modules.
+//!
+//! Every section is optional so that a missing permission or missing
+//! kernel interface does not abort the whole report. Skipped sections
+//! are recorded with a reason and surfaced in the output.
 
 use crate::render;
 use pulse_platform::{
     CpuInfo, DiskInfo, MemoryInfo, NetworkInfo, PlatformError, ProcessInfo, SystemInfo,
 };
 use serde::Serialize;
+
+#[derive(Debug, Serialize)]
+pub struct SkippedSection {
+    pub name: String,
+    pub reason: String,
+}
 
 #[derive(Debug, Serialize)]
 pub struct FullReport {
@@ -19,6 +29,15 @@ pub struct FullReport {
     pub network: Option<NetworkInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub process: Option<ProcessInfo>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub skipped: Vec<SkippedSection>,
+}
+
+fn skip(name: &str, err: &PlatformError) -> SkippedSection {
+    SkippedSection {
+        name: name.to_string(),
+        reason: err.to_string(),
+    }
 }
 
 pub fn build_full_report() -> Result<FullReport, PlatformError> {
@@ -27,15 +46,46 @@ pub fn build_full_report() -> Result<FullReport, PlatformError> {
         .map(|d| d.as_secs())
         .unwrap_or(0);
 
+    let mut skipped = Vec::new();
+
+    // These three are required. If they fail, the report is meaningless.
+    let system = pulse_platform::system_info()?;
+    let cpu = pulse_platform::cpu_info()?;
+    let memory = pulse_platform::memory_info()?;
+
+    // These three are optional. If they fail, record and continue.
+    let disk = match pulse_platform::disk_info() {
+        Ok(v) => Some(v),
+        Err(e) => {
+            skipped.push(skip("disk", &e));
+            None
+        }
+    };
+    let network = match pulse_platform::network_info() {
+        Ok(v) => Some(v),
+        Err(e) => {
+            skipped.push(skip("network", &e));
+            None
+        }
+    };
+    let process = match pulse_platform::process_info() {
+        Ok(v) => Some(v),
+        Err(e) => {
+            skipped.push(skip("process", &e));
+            None
+        }
+    };
+
     Ok(FullReport {
         pulse_version: env!("CARGO_PKG_VERSION").to_string(),
         generated_at_unix,
-        system: pulse_platform::system_info()?,
-        cpu: pulse_platform::cpu_info()?,
-        memory: pulse_platform::memory_info()?,
-        disk: pulse_platform::disk_info().ok(),
-        network: pulse_platform::network_info().ok(),
-        process: pulse_platform::process_info().ok(),
+        system,
+        cpu,
+        memory,
+        disk,
+        network,
+        process,
+        skipped,
     })
 }
 
@@ -70,6 +120,13 @@ impl FullReport {
             s.push_str("--- PROCESSES ---\n");
             s.push_str(&render::process_text(p));
         }
+        if !self.skipped.is_empty() {
+            s.push('\n');
+            s.push_str("--- SKIPPED ---\n");
+            for sk in &self.skipped {
+                let _ = writeln!(s, "  [skip] {} — {}", sk.name, sk.reason);
+            }
+        }
         s
     }
 
@@ -96,6 +153,12 @@ impl FullReport {
         if let Some(p) = &self.process {
             s.push_str("\n## Processes\n\n");
             s.push_str(&render::process_markdown(p));
+        }
+        if !self.skipped.is_empty() {
+            s.push_str("\n## Skipped\n\n");
+            for sk in &self.skipped {
+                let _ = writeln!(s, "- **{}**: {}", sk.name, sk.reason);
+            }
         }
         s
     }

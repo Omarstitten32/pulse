@@ -235,7 +235,29 @@ fn attack_surface_score_penalized_by_listeners() {
 #[test]
 fn attack_surface_collect_produces_report() {
     let s = AttackSurface::collect();
-    assert!(s.score <= 100);
+    // score is None iff no sources readable. Otherwise must be <= 100.
+    match s.score {
+        Some(n) => assert!(n <= 100),
+        None => assert_eq!(s.sources_read, 0),
+    }
+    assert!(s.sources_total > 0);
+    assert!(s.sources_read <= s.sources_total);
+}
+
+#[test]
+fn attack_surface_confidence_matches_counts() {
+    let s = AttackSurface::collect();
+    let expected = pulse_core::Confidence::from_counts(s.sources_read, s.sources_total);
+    assert_eq!(s.confidence, expected);
+}
+
+#[test]
+fn attack_surface_score_none_iff_zero_reads() {
+    let s = AttackSurface::collect();
+    match s.score {
+        Some(_) => assert!(s.sources_read > 0),
+        None => assert_eq!(s.sources_read, 0),
+    }
 }
 
 #[test]
@@ -309,7 +331,10 @@ fn vuln_compute_score_clamps_at_zero() {
 #[test]
 fn vuln_collect_produces_report() {
     let r = VulnerabilityReport::collect();
-    assert!(r.score <= 100);
+    match r.score {
+        Some(n) => assert!(n <= 100),
+        None => assert_eq!(r.sources_read, 0),
+    }
 }
 
 #[test]
@@ -345,8 +370,19 @@ fn all_three_modules_have_scores_within_bounds() {
     let a = AttackSurface::collect();
     let v = VulnerabilityReport::collect();
     assert!(h.score <= h.max_score);
-    assert!(a.score <= 100);
-    assert!(v.score <= 100);
+
+    // attack-surface now returns Option<u32>: Some only when at least
+    // one source was readable. When None, sources_read must be 0.
+    match a.score {
+        Some(n) => assert!(n <= 100, "attack-surface score out of bounds: {n}"),
+        None => assert_eq!(a.sources_read, 0, "None score requires zero reads"),
+    }
+
+    // vulnerabilities now returns Option<u32> as well.
+    match v.score {
+        Some(n) => assert!(n <= 100, "vulns score out of bounds: {n}"),
+        None => assert_eq!(v.sources_read, 0, "None score requires zero reads"),
+    }
 }
 
 // ===========================================================================
@@ -385,7 +421,7 @@ fn vuln_render_text_with_findings_shows_breakdown() {
     let mut r = empty_vuln_report();
     r.empty_passwords = vec!["u1".into()];
     r.findings = build_findings(&r);
-    r.score = 90;
+    r.score = Some(90);
     let s = r.render_text();
     assert!(s.contains("Findings: 1"));
     assert!(s.contains("[BREAKDOWN]"));
@@ -522,4 +558,20 @@ fn scanners_run_without_panic() {
     let _ = scan_insecure_mounts();
     let _ = scan_unsigned_repos();
     let _ = scan_dangerous_sudoers();
+}
+
+#[test]
+fn vuln_confidence_matches_counts() {
+    let r = VulnerabilityReport::collect();
+    let expected = pulse_core::Confidence::from_counts(r.sources_read, r.sources_total);
+    assert_eq!(r.confidence, expected);
+}
+
+#[test]
+fn vuln_score_none_iff_zero_reads() {
+    let r = VulnerabilityReport::collect();
+    match r.score {
+        Some(_) => assert!(r.sources_read > 0),
+        None => assert_eq!(r.sources_read, 0),
+    }
 }

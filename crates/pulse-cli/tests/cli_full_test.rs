@@ -136,6 +136,42 @@ fn platform_command() {
     assert!(s.contains("endianness"));
 }
 
+#[test]
+fn platform_respects_format_json() {
+    let out = run(&["--format=json", "platform"]);
+    assert!(out.status.success());
+    let s = stdout(&out);
+    assert!(
+        s.trim_start().starts_with('{'),
+        "platform --format=json must emit JSON object, got: {}",
+        &s[..s.len().min(80)]
+    );
+    assert!(s.contains("\"arch\""));
+    assert!(s.contains("\"endianness\""));
+}
+
+#[test]
+fn platform_respects_format_markdown() {
+    let out = run(&["--format=markdown", "platform"]);
+    assert!(out.status.success());
+    let s = stdout(&out);
+    assert!(
+        s.contains("|") && s.contains("arch"),
+        "platform --format=markdown must emit a table, got: {}",
+        &s[..s.len().min(80)]
+    );
+}
+
+#[test]
+fn platform_text_json_markdown_all_differ() {
+    let text = stdout(&run(&["platform"]));
+    let json = stdout(&run(&["--format=json", "platform"]));
+    let md = stdout(&run(&["--format=markdown", "platform"]));
+    assert_ne!(text, json, "text vs json must differ");
+    assert_ne!(text, md, "text vs markdown must differ");
+    assert_ne!(json, md, "json vs markdown must differ");
+}
+
 // ---------------------------------------------------------------------------
 // 2. Argument parsing errors
 // ---------------------------------------------------------------------------
