@@ -1,6 +1,6 @@
 # Pulse — Reproducibility
 
-> Status: v1.10.0 · Last updated: 2026-10-16
+> Status: v1.10.1 · Last updated: 2026-10-16
 
 This document explains how to verify that a Pulse binary was built
 from the source code published in the repository, and not from a
@@ -22,6 +22,15 @@ Given:
 ...the resulting binary has the same sha256 regardless of the path
 the source was cloned into, the hostname of the machine, or the
 order of operations.
+
+## Reference Hash for v1.10.1
+
+    size:   1011208 bytes
+    sha256: bb27af96765546232e3ac95bbc16ff070a33677250b99fe61ab12578bf035728
+    linker: rust-lld (self-contained)
+
+Structure-only hotfix for v1.10.0: the vulnerability report now
+emits the breakdown section unconditionally. JSON schema unchanged.
 
 ## Reference Hash for v1.10.0
 

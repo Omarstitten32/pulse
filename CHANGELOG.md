@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.10.1] — 2026-10-16
+
+Hotfix for the v1.10.0 vulnerability report structure. The text and
+markdown renderers used to skip the `[BREAKDOWN]` / `## Breakdown`
+section when the findings list was empty, which made the document
+structure depend on scan results. This caused CI to pass on Kali
+systems (findings present due to `/etc/sudoers.d/kali-grant-root`)
+but fail on ubuntu-latest (no findings).
+
+### Fixed
+
+- `vulns` now always emits the breakdown section in both text and
+  markdown output. The "No known vulnerabilities detected." message
+  is still shown when findings are empty.
+- `ci.yml`: cross-compile check now accepts `static-pie linked`
+  (the format produced by rust-lld on x86_64).
+
+### Notes
+
+This is a structure-only fix. The JSON schema is unchanged. Users
+who do not rely on the markdown layout are unaffected.
+
 ## [1.10.0] — 2026-10-16
 
 Second public release. Hardens the security engines so they never

@@ -46,7 +46,7 @@ not a UI wrapper around shell commands.
 
 ### Download (once a release is published)
 
-    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.10.0/pulse-v1.10.0-aarch64-linux-static -o pulse
+    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.10.1/pulse-v1.10.1-aarch64-linux-static -o pulse
     chmod +x pulse
 
 Verify the download against the reference `sha256`:
@@ -380,7 +380,7 @@ Two independent builds of the same tag produce byte-identical output.
 
 Verify with:
 
-    git checkout v1.10.0
+    git checkout v1.10.1
     cargo build --release --target=aarch64-unknown-linux-musl
     sha256sum target/aarch64-unknown-linux-musl/release/pulse
 
@@ -401,7 +401,7 @@ Full procedure in [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md).
 
     git clone https://github.com/Omarstitten32/pulse
     cd pulse
-    git checkout v1.10.0
+    git checkout v1.10.1
     cargo build --release --target=aarch64-unknown-linux-musl
     ./target/aarch64-unknown-linux-musl/release/pulse --version
 
