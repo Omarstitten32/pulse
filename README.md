@@ -10,7 +10,7 @@
 **Pulse** is a high-performance, cross-platform system introspection tool written in Rust.
 It provides deep forensic analysis, threat detection, and system monitoring with zero external dependencies and sub-10ms execution time.
 
-> **Note**: Windows support is currently in active development (Core APIs implemented, advanced modules pending).
+> **Note**: Core system modules (system, cpu, memory) are now supported on Windows. Advanced modules are under active development.
 
 ---
 
