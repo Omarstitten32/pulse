@@ -38,3 +38,4 @@ mutants.out.old/
 # Temporary scratch
 /tmp/
 src_backup_*
+fix_sniper_tests.sh
