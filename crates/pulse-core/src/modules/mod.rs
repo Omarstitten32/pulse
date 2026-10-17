@@ -11,6 +11,7 @@ pub mod forensics;
 pub mod hardening;
 pub mod integrity;
 pub mod iommu;
+pub mod memory_forensics;
 pub mod namespaces;
 pub mod numa;
 pub mod nvme;

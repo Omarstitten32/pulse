@@ -4,14 +4,16 @@
 //! On Linux/Android: reads /proc and /sys directly.
 //! Never returns simulated data.
 
+#[cfg(target_os = "linux")]
+pub mod linux;
+
+#[cfg(target_os = "windows")]
+pub mod windows;
+
 pub mod error;
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod hwid;
 pub mod sha256;
 pub mod types;
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-pub mod linux;
 
 pub use error::{PlatformError, Result};
 pub use types::{CoreInfo, CpuInfo, MemoryInfo, PlatformInfo, SystemInfo};
@@ -85,77 +87,71 @@ pub fn platform_info() -> Result<PlatformInfo> {
 
 // ---------------- Real system introspection ----------------
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn system_info() -> Result<SystemInfo> {
-    linux::system_info()
+    #[cfg(target_os = "linux")]
+    return linux::system_info();
+    #[cfg(target_os = "windows")]
+    return windows::system_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("system_info"));
 }
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn cpu_info() -> Result<CpuInfo> {
-    linux::cpu_info()
+    #[cfg(target_os = "linux")]
+    return linux::cpu_info();
+    #[cfg(target_os = "windows")]
+    return windows::cpu_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("cpu_info"));
 }
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn memory_info() -> Result<MemoryInfo> {
-    linux::memory_info()
+    #[cfg(target_os = "linux")]
+    return linux::memory_info();
+    #[cfg(target_os = "windows")]
+    return windows::memory_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("memory_info"));
 }
 
 /// Read boot time directly (with fallback to uptime-derived value).
 /// Works without root if /proc/uptime is readable.
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn boot_time_unix() -> Result<u64> {
-    linux::read_boot_time()
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn system_info() -> Result<SystemInfo> {
-    Err(PlatformError::unsupported(
-        "system_info (only Linux/Android currently supported)",
-    ))
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn cpu_info() -> Result<CpuInfo> {
-    Err(PlatformError::unsupported(
-        "cpu_info (only Linux/Android currently supported)",
-    ))
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn memory_info() -> Result<MemoryInfo> {
-    Err(PlatformError::unsupported(
-        "memory_info (only Linux/Android currently supported)",
-    ))
+    #[cfg(target_os = "linux")]
+    return linux::read_boot_time();
+    #[cfg(target_os = "windows")]
+    return windows::boot_time_unix();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("boot_time_unix"));
 }
 
 // ---------------- Disk / Network / Process ----------------
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn disk_info() -> Result<crate::types::DiskInfo> {
-    linux::disk_info()
+    #[cfg(target_os = "linux")]
+    return linux::disk_info();
+    #[cfg(target_os = "windows")]
+    return windows::disk_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("disk_info"));
 }
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn network_info() -> Result<crate::types::NetworkInfo> {
-    linux::network_info()
+    #[cfg(target_os = "linux")]
+    return linux::network_info();
+    #[cfg(target_os = "windows")]
+    return windows::network_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("network_info"));
 }
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn process_info() -> Result<crate::types::ProcessInfo> {
-    linux::process_info()
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn disk_info() -> Result<crate::types::DiskInfo> {
-    Err(PlatformError::unsupported("disk_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn network_info() -> Result<crate::types::NetworkInfo> {
-    Err(PlatformError::unsupported("network_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn process_info() -> Result<crate::types::ProcessInfo> {
-    Err(PlatformError::unsupported("process_info"))
+    #[cfg(target_os = "linux")]
+    return linux::process_info();
+    #[cfg(target_os = "windows")]
+    return windows::process_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("process_info"));
 }
 
 pub use types::{
@@ -167,193 +163,182 @@ pub use types::{
     ThermalZone, UsbDevice, UsbInfo, UserEntry, UsersInfo, VmInfo, VmStat,
 };
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn thermal_info() -> Result<crate::types::ThermalInfo> {
-    linux::thermal_info()
+    #[cfg(target_os = "linux")]
+    return linux::thermal_info();
+    #[cfg(target_os = "windows")]
+    return windows::thermal_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("thermal_info"));
 }
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn gpu_info() -> Result<crate::types::GpuInfo> {
-    linux::gpu_info()
+    #[cfg(target_os = "linux")]
+    return linux::gpu_info();
+    #[cfg(target_os = "windows")]
+    return windows::gpu_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("gpu_info"));
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn thermal_info() -> Result<crate::types::ThermalInfo> {
-    Err(PlatformError::unsupported("thermal_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn gpu_info() -> Result<crate::types::GpuInfo> {
-    Err(PlatformError::unsupported("gpu_info"))
-}
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn memory_detail() -> Result<crate::types::MemoryDetail> {
-    linux::memory_detail()
+    #[cfg(target_os = "linux")]
+    return linux::memory_detail();
+    #[cfg(target_os = "windows")]
+    return windows::memory_detail();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("memory_detail"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn load_avg() -> Result<crate::types::LoadAvg> {
-    linux::load_avg()
+    #[cfg(target_os = "linux")]
+    return linux::load_avg();
+    #[cfg(target_os = "windows")]
+    return windows::load_avg();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("load_avg"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn vmstat() -> Result<crate::types::VmStat> {
-    linux::vmstat()
+    #[cfg(target_os = "linux")]
+    return linux::vmstat();
+    #[cfg(target_os = "windows")]
+    return windows::vmstat();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("vmstat"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn cpu_times() -> Result<crate::types::CpuTimes> {
-    linux::cpu_times()
+    #[cfg(target_os = "linux")]
+    return linux::cpu_times();
+    #[cfg(target_os = "windows")]
+    return windows::cpu_times();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("cpu_times"));
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn memory_detail() -> Result<crate::types::MemoryDetail> {
-    Err(PlatformError::unsupported("memory_detail"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn load_avg() -> Result<crate::types::LoadAvg> {
-    Err(PlatformError::unsupported("load_avg"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn vmstat() -> Result<crate::types::VmStat> {
-    Err(PlatformError::unsupported("vmstat"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn cpu_times() -> Result<crate::types::CpuTimes> {
-    Err(PlatformError::unsupported("cpu_times"))
-}
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn users_info() -> Result<crate::types::UsersInfo> {
-    linux::users_info()
+    #[cfg(target_os = "linux")]
+    return linux::users_info();
+    #[cfg(target_os = "windows")]
+    return windows::users_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("users_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn packages_info() -> Result<crate::types::PackagesInfo> {
-    linux::packages_info()
+    #[cfg(target_os = "linux")]
+    return linux::packages_info();
+    #[cfg(target_os = "windows")]
+    return windows::packages_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("packages_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn services_info() -> Result<crate::types::ServicesInfo> {
-    linux::services_info()
+    #[cfg(target_os = "linux")]
+    return linux::services_info();
+    #[cfg(target_os = "windows")]
+    return windows::services_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("services_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn filesystem_info() -> Result<crate::types::FsInfo> {
-    linux::filesystem_info()
+    #[cfg(target_os = "linux")]
+    return linux::filesystem_info();
+    #[cfg(target_os = "windows")]
+    return windows::filesystem_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("filesystem_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn env_info() -> Result<crate::types::EnvInfo> {
-    linux::env_info()
+    #[cfg(target_os = "linux")]
+    return linux::env_info();
+    #[cfg(target_os = "windows")]
+    return windows::env_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("env_info"));
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn users_info() -> Result<crate::types::UsersInfo> {
-    Err(PlatformError::unsupported("users_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn packages_info() -> Result<crate::types::PackagesInfo> {
-    Err(PlatformError::unsupported("packages_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn services_info() -> Result<crate::types::ServicesInfo> {
-    Err(PlatformError::unsupported("services_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn filesystem_info() -> Result<crate::types::FsInfo> {
-    Err(PlatformError::unsupported("filesystem_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn env_info() -> Result<crate::types::EnvInfo> {
-    Err(PlatformError::unsupported("env_info"))
-}
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn usb_info() -> Result<crate::types::UsbInfo> {
-    linux::usb_info()
+    #[cfg(target_os = "linux")]
+    return linux::usb_info();
+    #[cfg(target_os = "windows")]
+    return windows::usb_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("usb_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn pci_info() -> Result<crate::types::PciInfo> {
-    linux::pci_info()
+    #[cfg(target_os = "linux")]
+    return linux::pci_info();
+    #[cfg(target_os = "windows")]
+    return windows::pci_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("pci_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn battery_info() -> Result<crate::types::BatteryInfo> {
-    linux::battery_info()
+    #[cfg(target_os = "linux")]
+    return linux::battery_info();
+    #[cfg(target_os = "windows")]
+    return windows::battery_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("battery_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn sensors_info() -> Result<crate::types::SensorsInfo> {
-    linux::sensors_info()
+    #[cfg(target_os = "linux")]
+    return linux::sensors_info();
+    #[cfg(target_os = "windows")]
+    return windows::sensors_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("sensors_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn drivers_info() -> Result<crate::types::DriversInfo> {
-    linux::drivers_info()
+    #[cfg(target_os = "linux")]
+    return linux::drivers_info();
+    #[cfg(target_os = "windows")]
+    return windows::drivers_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("drivers_info"));
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn usb_info() -> Result<crate::types::UsbInfo> {
-    Err(PlatformError::unsupported("usb_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn pci_info() -> Result<crate::types::PciInfo> {
-    Err(PlatformError::unsupported("pci_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn battery_info() -> Result<crate::types::BatteryInfo> {
-    Err(PlatformError::unsupported("battery_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn sensors_info() -> Result<crate::types::SensorsInfo> {
-    Err(PlatformError::unsupported("sensors_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn drivers_info() -> Result<crate::types::DriversInfo> {
-    Err(PlatformError::unsupported("drivers_info"))
-}
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn containers_info() -> Result<crate::types::ContainersInfo> {
-    linux::containers_info()
+    #[cfg(target_os = "linux")]
+    return linux::containers_info();
+    #[cfg(target_os = "windows")]
+    return windows::containers_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("containers_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn vm_info() -> Result<crate::types::VmInfo> {
-    linux::vm_info()
+    #[cfg(target_os = "linux")]
+    return linux::vm_info();
+    #[cfg(target_os = "windows")]
+    return windows::vm_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("vm_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn browsers_info() -> Result<crate::types::BrowsersInfo> {
-    linux::browsers_info()
+    #[cfg(target_os = "linux")]
+    return linux::browsers_info();
+    #[cfg(target_os = "windows")]
+    return windows::browsers_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("browsers_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn crypto_info() -> Result<crate::types::CryptoInfo> {
-    linux::crypto_info()
+    #[cfg(target_os = "linux")]
+    return linux::crypto_info();
+    #[cfg(target_os = "windows")]
+    return windows::crypto_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("crypto_info"));
 }
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn cron_info() -> Result<crate::types::CronInfo> {
-    linux::cron_info()
+    #[cfg(target_os = "linux")]
+    return linux::cron_info();
+    #[cfg(target_os = "windows")]
+    return windows::cron_info();
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    return Err(crate::error::PlatformError::unsupported("cron_info"));
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn containers_info() -> Result<crate::types::ContainersInfo> {
-    Err(PlatformError::unsupported("containers_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn vm_info() -> Result<crate::types::VmInfo> {
-    Err(PlatformError::unsupported("vm_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn browsers_info() -> Result<crate::types::BrowsersInfo> {
-    Err(PlatformError::unsupported("browsers_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn crypto_info() -> Result<crate::types::CryptoInfo> {
-    Err(PlatformError::unsupported("crypto_info"))
-}
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn cron_info() -> Result<crate::types::CronInfo> {
-    Err(PlatformError::unsupported("cron_info"))
-}
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn hwid_info(context: Option<&str>) -> Result<crate::types::HwidInfo> {
     crate::hwid::hwid_info(context)
-}
-
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn hwid_info(_context: Option<&str>) -> Result<crate::types::HwidInfo> {
-    Err(PlatformError::unsupported("hwid_info"))
 }
 
 #[cfg(test)]
@@ -372,7 +357,6 @@ mod tests {
         assert!(matches!(pointer_width(), 32 | 64));
     }
 
-    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn system_info_reads_hostname() {
         let info = system_info().expect("system_info should succeed on Linux/Android");
@@ -380,7 +364,6 @@ mod tests {
         assert!(info.pointer_width == 32 || info.pointer_width == 64);
     }
 
-    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn cpu_info_reads_cores() {
         let info = cpu_info().expect("cpu_info should succeed");
@@ -388,7 +371,6 @@ mod tests {
         assert_eq!(info.per_core.len(), info.cores as usize);
     }
 
-    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn memory_info_reads_total() {
         let info = memory_info().expect("memory_info should succeed");
@@ -405,19 +387,20 @@ pub enum RuntimeMode {
     Unknown,
 }
 
-#[cfg(unix)]
 pub fn runtime_mode() -> RuntimeMode {
-    let euid = unsafe { libc::geteuid() };
-    if euid == 0 {
-        RuntimeMode::Root
-    } else {
-        RuntimeMode::User
+    #[cfg(unix)]
+    {
+        let euid = unsafe { libc::geteuid() };
+        if euid == 0 {
+            RuntimeMode::Root
+        } else {
+            RuntimeMode::User
+        }
     }
-}
-
-#[cfg(not(unix))]
-pub fn runtime_mode() -> RuntimeMode {
-    RuntimeMode::Unknown
+    #[cfg(not(unix))]
+    {
+        RuntimeMode::Unknown
+    }
 }
 
 pub fn is_root() -> bool {
@@ -432,17 +415,9 @@ pub fn command_needs_root(cmd: &str) -> bool {
     )
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
-pub fn boot_time_unix() -> Result<u64> {
-    Err(PlatformError::unsupported("boot_time_unix"))
-}
-
 // ---------------------------------------------------------------------------
 // Multi-platform support
 // ---------------------------------------------------------------------------
-
-#[cfg(target_os = "windows")]
-pub mod windows;
 
 #[cfg(target_os = "macos")]
 pub mod macos;
@@ -477,7 +452,7 @@ pub const fn host_os() -> &'static str {
         target_os = "android",
         target_os = "windows",
         target_os = "macos",
-        target_os = "freebsd",
+        target_os = "freebsd"
     )))]
     {
         "unknown"

@@ -3,9 +3,12 @@
 //! Collects open ports, setuid binaries, file capabilities,
 //! world-writable directories, cron entries, SSH keys.
 
+#[cfg(not(unix))]
+use crate::platform_shim::PermissionsExt;
 use crate::types::Confidence;
 use serde::Serialize;
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 

@@ -476,6 +476,9 @@ fn signal_suid_count() -> Signal {
     const DIRS: &[&str] = &["/usr/bin", "/usr/sbin", "/bin", "/sbin"];
     let mut count = 0u32;
     let mut samples = Vec::new();
+    #[cfg(not(unix))]
+    use crate::platform_shim::MetadataExt;
+    #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
     for dir in DIRS {
         let Ok(rd) = fs::read_dir(dir) else { continue };
@@ -546,6 +549,9 @@ pub(crate) fn classify_world_writable_etc(count: u32, samples: Vec<String>) -> S
 fn signal_world_writable_etc() -> Signal {
     let mut count = 0u32;
     let mut samples = Vec::new();
+    #[cfg(not(unix))]
+    use crate::platform_shim::MetadataExt;
+    #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
     if let Ok(rd) = fs::read_dir("/etc") {
         for e in rd.flatten() {
@@ -589,8 +595,14 @@ pub(crate) fn classify_tmp_exec(foreign_count: u32, samples: Vec<String>) -> Sig
 fn signal_tmp_executables() -> Signal {
     let mut foreign_count = 0u32;
     let mut samples = Vec::new();
+    #[cfg(not(unix))]
+    use crate::platform_shim::MetadataExt;
+    #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
+    #[cfg(unix)]
     let self_uid = unsafe { libc::getuid() };
+    #[cfg(not(unix))]
+    let self_uid = crate::platform_shim::getuid();
     if let Ok(rd) = fs::read_dir("/tmp") {
         for e in rd.flatten() {
             let Ok(md) = e.metadata() else { continue };
@@ -2185,5 +2197,92 @@ mod android_trust_tests {
             "message should mention Android: detail={:?} evidence={:?}",
             s.detail, s.evidence
         );
+    }
+}
+
+// ============================================================================
+// SNIPER TESTS V3: Absolutely Bulletproof
+// ============================================================================
+#[cfg(test)]
+mod sniper_tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn sniper_read_i64_mutant() {
+        let path = "/tmp/sniper_i64_test.txt";
+        fs::write(path, "12345").unwrap();
+        assert_eq!(read_i64(path), Some(12345));
+
+        fs::write(path, "-999").unwrap();
+        assert_eq!(read_i64(path), Some(-999));
+
+        fs::write(path, "invalid").unwrap();
+        assert_eq!(read_i64(path), None);
+
+        assert_eq!(read_i64("/does/not/exist_123"), None);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn sniper_is_process_running_mutant() {
+        // A fake process must never exist. This kills the `-> bool with true` mutant.
+        assert!(
+            !is_process_running("fake_process_name_xyz_123"),
+            "Fake process must be false"
+        );
+    }
+
+    #[test]
+    fn sniper_is_port_listening_mutant() {
+        assert!(!is_port_listening(0), "Port 0 cannot be listening");
+        assert!(!is_port_listening(1), "Port 1 should not be listening");
+    }
+
+    #[test]
+    fn sniper_signal_uptime_logic() {
+        let sig = signal_uptime();
+        for e in &sig.evidence {
+            if let Ok(num) = e.parse::<f64>() {
+                assert!(
+                    num < 100000.0,
+                    "Uptime number is absurdly large (mutant caught)"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn sniper_signal_cron_jobs_logic() {
+        let sig = signal_cron_jobs();
+        assert!(
+            sig.detail.contains("cron source"),
+            "Signal detail must be present"
+        );
+    }
+
+    #[test]
+    fn sniper_signal_users_uid0_logic() {
+        let sig = signal_users_uid0();
+        assert_eq!(
+            sig.state,
+            SignalState::Good,
+            "Should detect only root as UID 0"
+        );
+    }
+
+    #[test]
+    fn sniper_signal_deleted_binaries_logic() {
+        let sig = signal_deleted_binaries();
+        assert!(sig.evidence.len() <= 3, "Evidence should be capped at 3");
+    }
+
+    #[test]
+    fn sniper_render_text_mutants() {
+        let report = build_trust_report();
+        let text = report.render_text();
+
+        // Catch the String::new() mutant
+        assert!(!text.is_empty(), "Rendered text cannot be empty");
     }
 }

@@ -177,6 +177,7 @@ fn main() -> ExitCode {
         "trust" => generate_trust(&cli),
         "hardening" => generate_hardening(&cli),
         "attack-surface" | "attack" => generate_attack_surface(&cli),
+        "memory-audit" | "memory-forensics" => generate_memory_audit(&cli),
         "vulns" | "vulnerabilities" => generate_vulnerabilities(&cli),
         "snapshot" => generate_snapshot(&cli).map_err(|e| e.to_string()),
         "merkle-leaves" => capture_snapshot().map_err(|e| e.to_string()).map(|snap| {
@@ -409,7 +410,8 @@ COMMANDS:\n\
     hwid        Stable hardware identifier (SHA-256)\n\
     trust       Security trust score (0-100)\n\
     hardening   Kernel hardening audit with 22 checks\n\
-    attack-surface  Enumerate attack surface (ports, SUID, keys)\n\
+    attack-surface  Enumerate attack surface (ports, SUID, keys)\n    memory-audit Fileless malware scanner (RWX + memfd + deleted)\n\\
+
     vulns       Configuration vulnerability scan\n\
     snapshot    Save full system state to JSON\n\
     diff        Compare two snapshots (file1 file2)\n\
@@ -764,6 +766,16 @@ fn generate_attack_surface(cli: &Cli) -> Result<String, String> {
         Format::Json => pulse_core::render::to_json(&surface, effective_json_style(cli)),
         Format::Markdown => surface.render_markdown(),
         Format::Text => surface.render_text(),
+    })
+}
+
+fn generate_memory_audit(cli: &Cli) -> Result<String, String> {
+    let report = pulse_core::MemoryForensicReport::collect();
+    let show_all = cli.verbose;
+    Ok(match effective_format(cli) {
+        Format::Json => pulse_core::render::to_json(&report, effective_json_style(cli)),
+        Format::Markdown => report.render_markdown_with(show_all),
+        Format::Text => report.render_text_with(show_all),
     })
 }
 

@@ -3,9 +3,12 @@
 //! Detects known-weak configurations: empty passwords, world-readable
 //! SSH keys, missing PAM controls, insecure mounts, unsigned repositories.
 
+#[cfg(not(unix))]
+use crate::platform_shim::PermissionsExt;
 use crate::types::Confidence;
 use serde::Serialize;
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 #[derive(Debug, Default, Serialize)]

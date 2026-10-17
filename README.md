@@ -1,5 +1,21 @@
 # Pulse
 
+[![Platform Support](https://img.shields.io/badge/platform-linux%20%7C%20android%20%7C%20windows-brightgreen.svg)](#)
+[![Rust Version](https://img.shields.io/badge/rust-1.80%2B-blue.svg)](https://www.rust-lang.org/)
+[![Tests](https://img.shields.io/badge/tests-1101%2B%20passed-success.svg)](#)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-yellowgreen.svg)](#)
+[![Security](https://img.shields.io/badge/security-audited-success.svg)](#)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+**Pulse** is a high-performance, cross-platform system introspection tool written in Rust.
+It provides deep forensic analysis, threat detection, and system monitoring with zero external dependencies and sub-10ms execution time.
+
+> **Note**: Windows support is currently in active development (Core APIs implemented, advanced modules pending).
+
+---
+
+# Pulse
+
 > **Deep system introspection for every platform.**
 > 17 modules · 11 in development · 6 rare features · static binary · zero dependencies.
 

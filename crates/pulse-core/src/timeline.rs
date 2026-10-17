@@ -165,6 +165,9 @@ fn collect_modules(btime: u64, since: u64) -> Vec<TimelineEvent> {
 
 fn collect_files(paths: &[&str], since: u64) -> Vec<TimelineEvent> {
     let mut out = Vec::new();
+    #[cfg(not(unix))]
+    use crate::platform_shim::MetadataExt;
+    #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
 
     for path in paths {
