@@ -115,7 +115,7 @@ pub fn is_whitelisted(name: &str) -> bool {
         || n.starts_with("hal.")
 }
 
-/// Parse the content of `/proc/`[pid]`/maps`.
+/// Parse the content of `/proc/[pid]/maps`.
 ///
 /// Returns `(rwx_page_count, has_memfd)`.
 pub fn parse_maps(content: &str) -> (usize, bool) {

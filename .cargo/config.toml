@@ -1,15 +1,3 @@
-# Cross-compile linker configuration
-#
-# aarch64-unknown-linux-musl:
-#   On x86_64 CI hosts, `cc` is x86_64 gcc which cannot link aarch64 objects.
-#   Rust bundles `rust-lld` (LLVM linker) with the toolchain and it
-#   handles all cross-targets. Use it explicitly.
-#
-# x86_64-unknown-linux-musl:
-#   musl-tools provides an x86_64 musl-gcc on Ubuntu; use it.
-
-[target.aarch64-unknown-linux-musl]
-linker = "rust-lld"
-
-[target.x86_64-unknown-linux-musl]
-linker = "musl-gcc"
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
