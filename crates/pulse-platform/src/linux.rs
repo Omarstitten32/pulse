@@ -435,10 +435,9 @@ fn classify_iface(path: &str) -> Option<String> {
 
 pub fn network_info() -> Result<NetworkInfo> {
     let mut interfaces = Vec::new();
-    // Tolerant: on non-root Android, /sys/class/net is restricted.
-    let Ok(entries) = std::fs::read_dir("/sys/class/net") else {
-        return Ok(NetworkInfo { interfaces });
-    };
+    // Strict: if /sys/class/net is restricted, return an error to trigger SKIPPED logic.
+    let entries =
+        std::fs::read_dir("/sys/class/net").map_err(|e| PlatformError::io("/sys/class/net", e))?;
     let mut names: Vec<String> = Vec::new();
     for e in entries.flatten() {
         if let Some(n) = e.file_name().to_str() {
