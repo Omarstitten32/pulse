@@ -9,8 +9,10 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ## [1.12.1] — 2026-10-17
 
-Documentation-only patch. No code changes, no binary change.
-Same SHA256 as v1.12.0.
+Documentation-only patch. The only functional change is the
+version string in `Cargo.toml`, which shifts the binary SHA256
+(16 bytes larger due to the updated version metadata). All code
+is byte-identical to v1.12.0.
 
 ### Changed (README)
 

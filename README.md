@@ -528,7 +528,7 @@ Two independent builds of the same tag produce byte-identical output.
 
     file:   ELF 64-bit LSB executable, ARM aarch64, statically linked, stripped
     size:   ~1.15 MB
-    sha256: 8fb0e5d77531acb7aa56f115e21478454584868f4c7e9748a9375473289154a4
+    sha256: b5185f1e6c49ff8391ab97953268c67841b781193cefe290f8fa0abdceab1083
 
 Verify with:
 
