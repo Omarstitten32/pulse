@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.13.0] — 2026-10-18
+
+Major architectural cleanup and focus on Linux/Android stability.
+
+### Removed
+- **Windows Support:** Purged incomplete Windows cross-compilation pipelines to ensure 100% reliability on Linux and Android.
+- Removed temporary CI scripts and LLD linker configurations.
+
+### Changed
+- Streamlined GitHub Actions CI to focus entirely on Linux quality gates.
+- Updated README badges and documentation to reflect the Linux/Android focus.
+
+---
+
 ## [1.12.1] — 2026-10-17
 
 Documentation-only patch. The only functional change is the
