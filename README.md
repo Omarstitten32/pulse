@@ -1,15 +1,18 @@
 # Pulse
 
 > **Deep system introspection for every platform.**
-> 28+ modules · 6 rare features · static binary · zero runtime dependencies.
+> 17 modules · 11 in development · 6 rare features · static binary · zero dependencies.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.99.0-orange.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20android-blue.svg)]()
 [![Size](https://img.shields.io/badge/binary-1.2%20MB-green.svg)]()
-[![Version](https://img.shields.io/badge/version-1.12.0-blueviolet.svg)]()
+[![Version](https://img.shields.io/badge/version-1.12.1-blueviolet.svg)]()
 [![Static](https://img.shields.io/badge/linking-static-brightgreen.svg)]()
 [![Reproducible](https://img.shields.io/badge/build-reproducible-brightgreen.svg)](docs/REPRODUCIBILITY.md)
+[![Tests](https://img.shields.io/badge/tests-1101%20passing-brightgreen)]()
+[![Clippy](https://img.shields.io/badge/clippy-0%20warnings-blue)]()
+[![LOC](https://img.shields.io/badge/LOC-24%2C908-informational)]()
 
 ---
 
@@ -20,13 +23,29 @@ from the Linux kernel (`/proc`, `/sys`) — no simulation, no caching,
 no external commands, no network, no daemon.
 
 It aggregates **28+ modules**, **3 dedicated security engines**, and
-**6 rare analysis features** into a single **~1 MB static binary**.
+**6 rare analysis features** into a single **~1.2 MB static binary**.
 It runs on any Linux or Android/aarch64 without installing a single
 runtime library.
 
 Pulse is designed for engineers, auditors, and forensic analysts who
 want **deterministic, verifiable, and reproducible** system state —
 not a UI wrapper around shell commands.
+
+
+---
+
+## Story
+
+Built over three days on a **POCO X6 Pro running Android 14 + Termux**.
+No laptop, no desktop, no IDE — just a phone, an external keyboard,
+and a Rust toolchain compiled for aarch64 Android.
+
+The result: **24,908 lines of Rust, 1,101 tests, 0 failures**, and a
+single 1.2 MB static binary that runs on any Linux or Android
+without installing a single runtime library.
+
+Every commit, every test run, every release build happened on the
+same device you might be reading this on.
 
 ---
 
@@ -42,6 +61,22 @@ not a UI wrapper around shell commands.
 
 
 ---
+
+
+---
+
+## What's New in v1.12.0
+
+- **Operations Console rewrite** — the dashboard now shows eight
+  quick actions, a live clock, CPU sparklines, per-core frequency
+  bars, memory/disk gauges, and a live event feed.
+- **Android trust fix** — `perf_event_paranoid = -1` is now
+  correctly classified as the Android 14 default (not a
+  misconfiguration). Trust score on Termux rises from 58/F to
+  ~92/A.
+- **Overlay pagination** — page counter uses `div_ceil` and scroll
+  clamps to the last valid offset.
+- **1,101 tests** (was 1,094).
 
 ## Interactive Dashboard
 
@@ -78,7 +113,7 @@ network, no window manager required. Press `q` to exit.
 
 ### Download (once a release is published)
 
-    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.12.0/pulse-v1.12.0-aarch64-linux-static -o pulse
+    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.12.1/pulse-v1.12.1-aarch64-linux-static -o pulse
     chmod +x pulse
 
 Verify the download against the reference `sha256`:
@@ -93,7 +128,7 @@ Verify the download against the reference `sha256`:
 Termux's home directory, not shared storage:
 
     cd ~
-    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.12.0/pulse-v1.12.0-aarch64-linux-static -o pulse
+    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.12.1/pulse-v1.12.1-aarch64-linux-static -o pulse
     chmod 755 pulse
     ./pulse version
 
@@ -305,6 +340,38 @@ rules, insecure mounts, and unsigned repositories.
 
 ---
 
+
+### Composite: `pulse all`
+
+The `all` command runs every module and produces one report:
+
+    $ pulse all
+    === PULSE FULL REPORT ===
+
+    Pulse Version   : 1.12.0
+    Generated (unix): 1792200499
+
+    --- SYSTEM ---
+    OS Name        : Android
+    Uptime         : 25712 seconds (7h 8m)
+    Architecture   : aarch64
+
+    --- CPU ---
+    Model          : Unknown CPU
+    Cores          : 8
+    ...
+
+    --- MEMORY ---
+    Total          : 10873.9 MB
+    Used           : 42.8%
+
+    --- DISK ---
+    Mounts: 151
+    ...
+
+On non-root Termux, unreadable sections are listed under `SKIPPED`
+instead of failing the command.
+
 ## The 6 Rare Features
 
 ### 1. hwid — Stable Hardware Identifier
@@ -417,6 +484,30 @@ Full details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
+
+---
+
+## Benchmarks
+
+Every command completes in milliseconds on the reference device
+(POCO X6 Pro, Dimensity 8300-Ultra):
+
+| Command | Time (ms) |
+|---------|----------:|
+| `version` | 27 |
+| `platform` | 39 |
+| `cpu` | 38 |
+| `memory` | 25 |
+| `trust` | 125 |
+| `hardening` | 37 |
+| `vulns` | 30 |
+| `attack-surface` | 574 |
+| `disk` | 26 |
+
+`attack-surface` is the slowest because it recursively scans all
+PATH directories for SUID/SGID binaries and file capabilities.
+Everything else runs in under 130 ms.
+
 ## Security and Verification
 
 - **Reproducible builds** — two independent builds produce the same
@@ -441,7 +532,7 @@ Two independent builds of the same tag produce byte-identical output.
 
 Verify with:
 
-    git checkout v1.12.0
+    git checkout v1.12.1
     cargo build --release --target=aarch64-unknown-linux-musl
     sha256sum target/aarch64-unknown-linux-musl/release/pulse
 
@@ -462,7 +553,7 @@ Full procedure in [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md).
 
     git clone https://github.com/Omarstitten32/pulse
     cd pulse
-    git checkout v1.12.0
+    git checkout v1.12.1
     cargo build --release --target=aarch64-unknown-linux-musl
     ./target/aarch64-unknown-linux-musl/release/pulse --version
 
@@ -481,6 +572,19 @@ and binary sanity checks. All must pass before any commit is
 accepted.
 
 ---
+
+
+---
+
+## Roadmap
+
+- [x] **v1.9.0** — First public release (759 tests)
+- [x] **v1.10.x** — Confidence-aware engines + non-root graceful degradation
+- [x] **v1.11.0** — Interactive dashboard (v2)
+- [x] **v1.12.0** — Operations console (v3) + Android trust fix
+- [ ] **v1.13.0** — Live monitoring mode (tab navigation)
+- [ ] **v1.14.0** — Complete the 11 stub modules
+- [ ] **v2.0.0** — Remote attestation + Windows/macOS support
 
 ## Legal Notice and Responsible Use
 

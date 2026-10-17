@@ -7,6 +7,23 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.12.1] — 2026-10-17
+
+Documentation-only patch. No code changes, no binary change.
+Same SHA256 as v1.12.0.
+
+### Changed (README)
+
+- Added **Story** section (built on a phone in 3 days).
+- Added **Benchmarks** section with real per-command timings.
+- Added **Roadmap** section (v1.13 → v2.0).
+- Added **What's New in v1.12.0** callout.
+- Added `pulse all` composite example.
+- Added 3 new badges: Tests, Clippy, LOC.
+- Tagline now reads "17 modules · 11 in development" (was
+  "28+ modules") — reflects actual implementation status.
+- Unified binary size to `~1.2 MB` everywhere.
+
 ## [1.12.0] — 2026-10-17
 
 Second minor release. The interactive dashboard is rewritten from
