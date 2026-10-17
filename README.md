@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.99.0-orange.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20android-blue.svg)]()
-[![Size](https://img.shields.io/badge/binary-1.2%20MB-green.svg)]()
+[![Size](https://img.shields.io/badge/binary-1.15%20MB-green.svg)]()
 [![Version](https://img.shields.io/badge/version-1.12.1-blueviolet.svg)]()
 [![Static](https://img.shields.io/badge/linking-static-brightgreen.svg)]()
 [![Reproducible](https://img.shields.io/badge/build-reproducible-brightgreen.svg)](docs/REPRODUCIBILITY.md)
@@ -22,15 +22,15 @@
 from the Linux kernel (`/proc`, `/sys`) — no simulation, no caching,
 no external commands, no network, no daemon.
 
-It aggregates **28+ modules**, **3 dedicated security engines**, and
-**6 rare analysis features** into a single **~1.2 MB static binary**.
+It aggregates **17 working modules** (11 more in development),
+**3 dedicated security engines**, and
+**6 rare analysis features** into a single **~1.15 MB static binary**.
 It runs on any Linux or Android/aarch64 without installing a single
 runtime library.
 
 Pulse is designed for engineers, auditors, and forensic analysts who
 want **deterministic, verifiable, and reproducible** system state —
 not a UI wrapper around shell commands.
-
 
 ---
 
@@ -41,7 +41,7 @@ No laptop, no desktop, no IDE — just a phone, an external keyboard,
 and a Rust toolchain compiled for aarch64 Android.
 
 The result: **24,908 lines of Rust, 1,101 tests, 0 failures**, and a
-single 1.2 MB static binary that runs on any Linux or Android
+single 1.15 MB static binary that runs on any Linux or Android
 without installing a single runtime library.
 
 Every commit, every test run, every release build happened on the
@@ -58,10 +58,6 @@ same device you might be reading this on.
 - **Zero network** — cannot phone home, cannot leak data.
 - **No daemon** — every invocation is a one-shot process.
 - **Fast** — every command completes in under a second on modern hardware.
-
-
----
-
 
 ---
 
@@ -121,7 +117,6 @@ Verify the download against the reference `sha256`:
     sha256sum pulse
     # Reference hash is published in the release notes.
 
-
 ### On Termux / Android
 
 `/sdcard` is mounted with `noexec`. Download the binary into
@@ -143,7 +138,6 @@ missing sections under a `skipped` field.
     #     [skip] thermal - i/o error reading /sys/class/thermal: Permission denied
     #     [skip] network - i/o error reading /sys/class/net: Permission denied
     #     [skip] drivers - i/o error reading /proc/modules: Permission denied
-
 
 ### Run
 
@@ -340,7 +334,6 @@ rules, insecure mounts, and unsigned repositories.
 
 ---
 
-
 ### Composite: `pulse all`
 
 The `all` command runs every module and produces one report:
@@ -348,7 +341,7 @@ The `all` command runs every module and produces one report:
     $ pulse all
     === PULSE FULL REPORT ===
 
-    Pulse Version   : 1.12.0
+    Pulse Version   : 1.12.1
     Generated (unix): 1792200499
 
     --- SYSTEM ---
@@ -460,7 +453,7 @@ design and threat model.
 | rkhunter | 200 KB | No | perl | rootkits only |
 | osquery | 40 MB | No | daemon | SQL queries |
 | Falco | 50+ MB | No | eBPF | runtime security |
-| **Pulse** | **1.2 MB** | **Yes** | **none** | **all of the above** |
+| **Pulse** | **1.15 MB** | **Yes** | **none** | **all of the above** |
 
 - Zero runtime dependencies — no Python, no Perl, no Bash runtime
 - Static binary — runs on any Linux/Android without installing libraries
@@ -481,9 +474,6 @@ Pulse is organized as a Rust workspace with three crates:
 - **`pulse-cli`** — argument parsing and output routing.
 
 Full details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
----
-
 
 ---
 
@@ -542,7 +532,7 @@ Full procedure in [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md).
 
 ## Documentation
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — three crates, 28 modules, data flow
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — three crates, 17 modules + 11 in development, data flow
 - [`docs/CRYPTO.md`](docs/CRYPTO.md) — Ed25519 design, key derivation, threat model
 - [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) — how to verify a build
 - [`CHANGELOG.md`](CHANGELOG.md) — version history since 0.1.0
@@ -570,9 +560,6 @@ Runs, in order: `cargo fmt --check`, `cargo clippy -D warnings`,
 debug build, full test suite, `cargo doc`, release (musl) build,
 and binary sanity checks. All must pass before any commit is
 accepted.
-
----
-
 
 ---
 
