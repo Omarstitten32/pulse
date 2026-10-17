@@ -24,7 +24,7 @@ is byte-identical to v1.12.0.
 - Added 3 new badges: Tests, Clippy, LOC.
 - Tagline now reads "17 modules · 11 in development" (was
   "28+ modules") — reflects actual implementation status.
-- Unified binary size to `~1.2 MB` everywhere.
+- Unified binary size to `~1.15 MB` everywhere.
 
 ## [1.12.0] — 2026-10-17
 
