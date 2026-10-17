@@ -32,12 +32,3 @@ windows = { version = "0.58", features = [
 core-foundation      = "0.10"
 core-foundation-sys  = "0.8"
 mach2                = "0.4"
-
-[target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = [
-    "Win32_Foundation",
-    "Win32_System_SystemInformation",
-    "Win32_System_Memory",
-    "Win32_System_Threading",
-    "Win32_System_Environment"
-] }
