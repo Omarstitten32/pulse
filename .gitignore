@@ -37,3 +37,4 @@ mutants.out.old/
 
 # Temporary scratch
 /tmp/
+src_backup_*
