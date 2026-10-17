@@ -964,7 +964,7 @@ dependencies = [
 
 [[package]]
 name = "pulse-cli"
-version = "1.11.0"
+version = "1.12.0"
 dependencies = [
  "crossterm",
  "pulse-core",
@@ -975,7 +975,7 @@ dependencies = [
 
 [[package]]
 name = "pulse-core"
-version = "1.11.0"
+version = "1.12.0"
 dependencies = [
  "criterion",
  "ed25519-dalek",
@@ -993,7 +993,7 @@ dependencies = [
 
 [[package]]
 name = "pulse-platform"
-version = "1.11.0"
+version = "1.12.0"
 dependencies = [
  "core-foundation",
  "core-foundation-sys",

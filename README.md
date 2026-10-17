@@ -7,7 +7,7 @@
 [![Rust](https://img.shields.io/badge/rust-1.99.0-orange.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20android-blue.svg)]()
 [![Size](https://img.shields.io/badge/binary-1.2%20MB-green.svg)]()
-[![Version](https://img.shields.io/badge/version-1.11.0-blueviolet.svg)]()
+[![Version](https://img.shields.io/badge/version-1.12.0-blueviolet.svg)]()
 [![Static](https://img.shields.io/badge/linking-static-brightgreen.svg)]()
 [![Reproducible](https://img.shields.io/badge/build-reproducible-brightgreen.svg)](docs/REPRODUCIBILITY.md)
 
@@ -45,7 +45,10 @@ not a UI wrapper around shell commands.
 
 ## Interactive Dashboard
 
-`pulse dashboard` opens a full-screen TUI with four live panels:
+`pulse dashboard` opens a full-screen operations console with eight
+quick actions, a live clock, CPU sparklines, per-core frequency bars,
+memory/disk gauges, and a live event feed. Press `1`–`8` to run any
+security command and view its output in a scrollable overlay.
 
     +-------------------+-------------------+
     | TRUST             | HARDENING         |

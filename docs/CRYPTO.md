@@ -1,6 +1,6 @@
 # Pulse — Cryptography
 
-> Status: v1.11.0 · Last updated: 2026-10-16
+> Status: v1.12.0 · Last updated: 2026-10-16
 
 This document explains the cryptographic design of `pulse sign` and
 `pulse verify`. It is intended for users who need to reason about

@@ -207,8 +207,29 @@ fn signal_dmesg() -> Signal {
     classify_dmesg(read_i64("/proc/sys/kernel/dmesg_restrict"))
 }
 
+/// Classify perf_event_paranoid for the local kernel.
+///
+/// Delegates to `classify_perf_on` with the runtime platform.
 pub(crate) fn classify_perf(value: Option<i64>) -> Signal {
+    classify_perf_on(value, is_android_kernel())
+}
+
+/// Pure classifier — separated so both the Android and Linux branches
+/// are testable from any host.
+///
+/// Android 14+ ships with `perf_event_paranoid = -1` (no restriction).
+/// This is the platform default, not a misconfiguration, so it is
+/// treated as Good on Android while remaining Warn on Linux.
+pub(crate) fn classify_perf_on(value: Option<i64>, is_android: bool) -> Signal {
     match value {
+        Some(-1) if is_android => sig(
+            "perf_paranoid",
+            "perf_event_paranoid",
+            "kernel",
+            SignalState::Good,
+            "Android default (= -1)".into(),
+            5,
+        ),
         Some(n) if n >= 2 => sig(
             "perf_paranoid",
             "perf_event_paranoid",
@@ -2116,5 +2137,53 @@ mod parser_tests {
     #[test]
     fn uptime_with_leading_space() {
         assert_eq!(parse_uptime_seconds("  100.0\n"), 100);
+    }
+}
+
+#[cfg(test)]
+mod android_trust_tests {
+    use super::*;
+
+    #[test]
+    fn classify_perf_android_neg1_good() {
+        assert_eq!(classify_perf_on(Some(-1), true).state, SignalState::Good);
+    }
+
+    #[test]
+    fn classify_perf_linux_neg1_warn() {
+        assert_eq!(classify_perf_on(Some(-1), false).state, SignalState::Warn);
+    }
+
+    #[test]
+    fn classify_perf_android_1_still_warn() {
+        assert_eq!(classify_perf_on(Some(1), true).state, SignalState::Warn);
+    }
+
+    #[test]
+    fn classify_perf_android_2_still_good() {
+        assert_eq!(classify_perf_on(Some(2), true).state, SignalState::Good);
+    }
+
+    #[test]
+    fn classify_perf_android_0_still_warn() {
+        assert_eq!(classify_perf_on(Some(0), true).state, SignalState::Warn);
+    }
+
+    #[test]
+    fn classify_perf_none_unknown_both_platforms() {
+        assert_eq!(classify_perf_on(None, true).state, SignalState::Unknown);
+        assert_eq!(classify_perf_on(None, false).state, SignalState::Unknown);
+    }
+
+    #[test]
+    fn android_neg1_message_mentions_android() {
+        let s = classify_perf_on(Some(-1), true);
+        let mentions =
+            s.detail.contains("Android") || s.evidence.iter().any(|e| e.contains("Android"));
+        assert!(
+            mentions,
+            "message should mention Android: detail={:?} evidence={:?}",
+            s.detail, s.evidence
+        );
     }
 }

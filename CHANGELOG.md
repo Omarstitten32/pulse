@@ -7,6 +7,64 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [1.12.0] — 2026-10-17
+
+Second minor release. The interactive dashboard is rewritten from
+scratch as a proper operations console, and the trust engine now
+understands the Android default for `perf_event_paranoid`.
+
+### Added — Dashboard v3
+
+`pulse dashboard` is now a full operations console:
+
+- **Eight quick actions** on the footer bar. Keys `1` through `8`
+  run a command and display its result in a scrollable overlay:
+
+  | Key | Command |
+  |-----|---------|
+  | `1` | `trust` |
+  | `2` | `hardening` |
+  | `3` | `vulns` |
+  | `4` | `attack-surface` |
+  | `5` | `platform` |
+  | `6` | `system` |
+  | `7` | `hwid` |
+  | `8` | `all` |
+
+- **Live clock** (HH:MM:SS) and load average in the header, updated
+  every second.
+- **Per-core CPU bars** (heat-mapped by current frequency).
+- **CPU sparkline** with 40-sample history.
+- **Memory and disk bars** with accurate percentages (uses
+  `available`, not `free`).
+- **Live event feed** from `pulse timeline` (6 most recent events).
+- **Overlay viewer** with pagination: `↑↓/jk` scroll, `PgUp/PgDn`
+  page, `q/Esc` back. Title bar shows `page X/N · lines M`.
+
+The dashboard replaces the four-panel grid of 1.11.0.
+
+### Fixed
+
+- **Trust engine on Android.** `perf_event_paranoid = -1` is the
+  Android 14 default, not a misconfiguration. The classifier now
+  treats it as `Good` on Android kernels while keeping it `Warn` on
+  regular Linux. The check is performed at runtime via
+  `is_android_kernel()`, so the same static binary produces correct
+  results on both platforms.
+
+  Effect on a Termux host: Trust score rises from `58/100` (F) to
+  `~92/100` (A) — the correct classification.
+
+- **Dashboard overlay pagination.** Page counter now uses `div_ceil`
+  and clamps scrolling to the last valid offset. The title no longer
+  shows a stale `1/1` when the content spans multiple pages.
+
+### Tests
+
+- Added 7 new tests for `classify_perf_on` covering Android vs Linux
+  behaviour on values `-1`, `0`, `1`, `2`, and `None`.
+- Total: **1101 tests**, 0 failures.
+
 ## [1.11.0] — 2026-10-16
 
 First minor release with a new feature: an interactive terminal
