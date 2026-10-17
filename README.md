@@ -50,20 +50,24 @@ quick actions, a live clock, CPU sparklines, per-core frequency bars,
 memory/disk gauges, and a live event feed. Press `1`–`8` to run any
 security command and view its output in a scrollable overlay.
 
-    +-------------------+-------------------+
-    | TRUST             | HARDENING         |
-    | Score : 58/100 (F)| Score : 44/112 (F)|
-    | [#####.....]      | [####......]      |
-    | Signals : 18      | Readable : 19/22  |
-    |   * 9  * 1  * 1   |                   |
-    +-------------------+-------------------+
-    | CPU               | MEMORY            |
-    | Arch : aarch64    | Total : 10873 MiB |
-    | Cores : 8         | Used  : 4328 MiB  |
-    | Avg MHz : 887     | [#####.....]      |
-    +-------------------+-------------------+
-    | [q]uit   [r]efresh                    |
-    +---------------------------------------+
+    ╭─ ◆ PULSE CONSOLE ◆  ● ONLINE · Android · aarch64 · up 5h29m ─╮
+    │  00:59:23  load 0.42 0.38 0.35  procs 234  ifaces 1          │
+    ╰──────────────────────────────────────────────────────────────╯
+    ╭─ POSTURE ────────╮╭─ RESOURCES ─────────────────────────╮
+    │ TRUST    58/100 F││ CPU ▁▂▃▅▇█▇▅▃▂ 8c 1012MHz          │
+    │ [████████░░░░░] ││ 0 ▅ 1 ▅ 2 ▅ 3 ▅ 4 ▇ 5 ▇ 6 ▇ 7 ▅   │
+    │ Signals 18      ││ MEM [████████░░░] 39.8%             │
+    │  ●9 ●1 ●1 ○7    ││     4328M/10873M                    │
+    ╰──────────────────╯│ DSK [████░░░░░░░] 21.2%             │
+    ╭─ ENGINES ────────┐│     98G/465G                        │
+    │ HARDEN 44/112   │╰─────────────────────────────────────╯
+    │ VULNS 100/100   │╭─ LIVE FEED ────────────────────────╮
+    │ ATTACK 100/100  ││ +05:28 process start pulse        │
+    ╰─────────────────╯│ +00:00 kernel  boot  system        │
+                       ╰────────────────────────────────────╯
+
+    [1] trust [2] hard [3] vulns [4] attack [5] plat [6] sys
+    [7] hwid [8] all [r] refresh [q] quit
 
 Built with `ratatui`. Runs entirely in the terminal. No daemon, no
 network, no window manager required. Press `q` to exit.
@@ -74,7 +78,7 @@ network, no window manager required. Press `q` to exit.
 
 ### Download (once a release is published)
 
-    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.10.2/pulse-v1.10.2-aarch64-linux-static -o pulse
+    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.12.0/pulse-v1.12.0-aarch64-linux-static -o pulse
     chmod +x pulse
 
 Verify the download against the reference `sha256`:
@@ -89,7 +93,7 @@ Verify the download against the reference `sha256`:
 Termux's home directory, not shared storage:
 
     cd ~
-    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.10.2/pulse-v1.10.2-aarch64-linux-static -o pulse
+    curl -L https://github.com/Omarstitten32/pulse/releases/download/v1.12.0/pulse-v1.12.0-aarch64-linux-static -o pulse
     chmod 755 pulse
     ./pulse version
 
@@ -432,12 +436,12 @@ Full details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 Two independent builds of the same tag produce byte-identical output.
 
     file:   ELF 64-bit LSB executable, ARM aarch64, statically linked, stripped
-    size:   ~0.96 MB
-    sha256: 49d85aa775dad53780a359e803335bd0afcb5398edac2b0585776c34714c06cd
+    size:   ~1.15 MB
+    sha256: 8fb0e5d77531acb7aa56f115e21478454584868f4c7e9748a9375473289154a4
 
 Verify with:
 
-    git checkout v1.10.2
+    git checkout v1.12.0
     cargo build --release --target=aarch64-unknown-linux-musl
     sha256sum target/aarch64-unknown-linux-musl/release/pulse
 
