@@ -462,7 +462,7 @@ Full procedure in [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md).
 
     git clone https://github.com/Omarstitten32/pulse
     cd pulse
-    git checkout v1.10.2
+    git checkout v1.12.0
     cargo build --release --target=aarch64-unknown-linux-musl
     ./target/aarch64-unknown-linux-musl/release/pulse --version
 
